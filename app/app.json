@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Saiyan Awakening",
+    "slug": "saiyan-awakening",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#000000",
+    "splash": { "backgroundColor": "#000000", "image": "./assets/splash-icon.png", "resizeMode": "contain" },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "dev.hoanghoa.saiyanawakening",
+      "infoPlist": {
+        "CADisableMinimumFrameDurationOnPhone": true,
+        "UIRequiresFullScreen": true
+      }
+    },
+    "android": {
+      "package": "dev.hoanghoa.saiyanawakening",
+      "adaptiveIcon": {
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "plugins": ["expo-asset", "expo-font"]
+  }
+}
