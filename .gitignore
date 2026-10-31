@@ -1,0 +1,22 @@
+# sinh ra khi build / render (tools/build.sh dựng lại được)
+render/
+*.blend
+*.blend1
+app/assets/cinematic/cinematic.mp4
+
+# versions/: chỉ giữ ghi chú từng bản, bỏ video / ảnh / tiếng
+versions/*
+!versions/README.md
+!versions/v*/
+versions/v*/*
+!versions/v*/NOTES.md
+
+# app
+app/node_modules/
+app/ios/
+app/android/
+app/.expo/
+
+# rác của máy / patch
+.DS_Store
+*.orig
