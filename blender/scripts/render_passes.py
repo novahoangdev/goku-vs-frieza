@@ -1,7 +1,7 @@
-# Render 4 pass cho video pack: beauty (màu), matte (Goku trắng / còn lại đen), energy (chỉ vật phát sáng),
-# depth (độ sâu theo trục nhìn, log chuẩn hoá: app dùng để hiệu ứng 2D bị vật ở gần che đúng lớp).
+# Renders 4 passes for the video pack: beauty (color), matte (Goku white / everything else black), energy (emissive objects only),
+# depth (depth along the view axis, normalized log: the app uses it so 2D effects are occluded by near objects on the right layer).
 #
-# Chạy: Blender -b blender/goku_vs_frieza.blend -P blender/scripts/render_passes.py -- \
+# Run: Blender -b blender/goku_vs_frieza.blend -P blender/scripts/render_passes.py -- \
 #         --out render --pct 100 --samples 16 [--passes beauty,matte,energy,depth] [--frames 0-2051] [--motion-blur]
 import bpy, math, os, sys
 
@@ -16,10 +16,10 @@ OUT = os.path.abspath(arg("--out", "render"))
 PCT = int(arg("--pct", "100"))
 SAMPLES = int(arg("--samples", "16"))
 PASSES = arg("--passes", "beauty,matte,energy,depth").split(",")
-# depth: 0 ↔ Z_NEAR m, 1 ↔ Z_FAR m (và bầu trời); log để gần camera vẫn đủ chính xác. App giải mã cùng hằng số.
+# depth: 0 ↔ Z_NEAR m, 1 ↔ Z_FAR m (and the sky); log so it stays precise near the camera. The app decodes with the same constants.
 Z_NEAR, Z_FAR = 0.05, 400.0
 scene = bpy.context.scene
-F0, F1 = (int(x) for x in arg("--frames", f"{scene.frame_start}-{scene.frame_end}").split("-"))   # mặc định cả phim
+F0, F1 = (int(x) for x in arg("--frames", f"{scene.frame_start}-{scene.frame_end}").split("-"))   # default: the whole film
 
 r = scene.render
 r.resolution_percentage = PCT
@@ -89,7 +89,7 @@ def render(name, gray, depth="8", transparent=None):
 if "beauty" in PASSES:
     render("beauty", False)
 
-# matte / energy chỉ dùng ở 576×1248 trong video pack: render nửa độ phân giải, ít sample hơn cho nhanh
+# matte / energy are only used at 576×1248 in the video pack: render at half resolution, fewer samples for speed
 if "matte" in PASSES or "energy" in PASSES or "depth" in PASSES:
     r.resolution_percentage = max(25, PCT // 2)
     scene.eevee.taa_render_samples = min(SAMPLES, 8)
@@ -108,7 +108,7 @@ if "energy" in PASSES:
     set_energy_mode(0.0)
 
 if "depth" in PASSES:
-    # giá trị phải ra thẳng file: tắt tone map (Raw), dither, AA (1 sample), motion blur; nền trời = xa nhất (1.0)
+    # values must go straight to the file: disable tone mapping (Raw), dither, AA (1 sample), motion blur; sky background = farthest (1.0)
     vs = scene.view_settings
     saved = (vs.view_transform, vs.look, r.dither_intensity, r.use_motion_blur, scene.world, r.filter_size)
     try:

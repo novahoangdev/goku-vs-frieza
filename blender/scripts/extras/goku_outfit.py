@@ -1,11 +1,11 @@
-# Võ phục Goku theo mẫu FighterZ (tỉ lệ chibi): cổ chữ V sâu lộ áo xanh + ve áo cam, vai áo cam không tay,
-# nếp vải ngực/đai/quần dồn trên giày, giày navy sọc đỏ + dây buộc vàng ở cổ chân.
-# Chạy sau goku_details.py (dùng lại helper _gd_*). Vật mới tên "go_*", chép khoá ẩn/hiện từ goku_torso
-# (Goku biến mất lúc dịch chuyển 1001–1011).
+# Goku's gi modeled on FighterZ (chibi proportions): deep V-neck showing the blue undershirt + orange lapels, sleeveless orange shoulders,
+# cloth folds on chest/belt/pants bunching over the boots, navy boots with red stripes + yellow laces at the ankle.
+# Runs after goku_details.py (reuses the _gd_* helpers). New objects are named "go_*", visibility keys copied from goku_torso
+# (Goku vanishes while teleporting 1001–1011).
 
 
 def _go_patch(name, target, origin, nu, nv, dirfn, off, mat, col):
-    """Lưới (u, v) ∈ [0,1]² → điểm gốc origin(u, v) (toạ độ parent của target) → chiếu theo dirfn lên target."""
+    """(u, v) grid ∈ [0,1]² → origin point origin(u, v) (in target's parent coords) → projected along dirfn onto target."""
     bvh = _gd_bvh(target)
     bm = bmesh.new()
     vs = []
@@ -13,7 +13,7 @@ def _go_patch(name, target, origin, nu, nv, dirfn, off, mat, col):
         for i in range(nu + 1):
             p = origin(i / nu, j / nv)
             q = _gd_project(bvh, p, dirfn(p), off) if dirfn else None
-            if q is None:                                  # tia trượt (mép vòm vai): bám điểm gần nhất
+            if q is None:                                  # ray missed (shoulder curve edge): snap to the nearest point
                 loc, nrm, _i, _d = bvh.find_nearest(p)
                 q = loc + nrm.normalized() * off
             vs.append(bm.verts.new(q))
@@ -29,7 +29,7 @@ def _go_patch(name, target, origin, nu, nv, dirfn, off, mat, col):
 
 
 def _go_snap_stroke(name, target, pts, r, mat, col, off=0.004, samples=14):
-    """Nét cong bám mặt `target` bằng điểm gần nhất (dùng cho vòm vai quanh cổ, nơi chiếu tia bị trượt/lệch)."""
+    """Curved stroke snapped to `target` via nearest point (for the shoulder curve around the neck, where ray projection misses/skews)."""
     bvh = _gd_bvh(target)
     P = [Vector(p) for p in pts]
     dense = []
@@ -49,7 +49,7 @@ def _go_snap_stroke(name, target, pts, r, mat, col, off=0.004, samples=14):
 
 
 def _go_rope_ring(name, R, r, mat, col, wraps=14, seg=72, ring=8, scale=(1, 1, 1)):
-    """Vòng dây thừng xoắn: tiết diện phập phồng theo xoắn ốc."""
+    """Twisted rope ring: cross-section pulses along a helix."""
     bm = bmesh.new()
     rings = []
     for i in range(seg):
@@ -75,29 +75,29 @@ def _go_build():
     new = []
     LINE_COLORS.setdefault("goku_rope", "#6A4510")
     Mx = {
-        "ink": flat("go_ink", "#2A1208"),                 # viền ve áo / mép vải chồng: nâu đen
-        "fold": flat("go_fold", "#93380C"),               # nếp gấp vải: cam cháy
+        "ink": flat("go_ink", "#2A1208"),                 # lapel outline / overlapping cloth edge: brown-black
+        "fold": flat("go_fold", "#93380C"),               # cloth folds: burnt orange
         "fold_dk": flat("go_fold_dk", "#6A220A"),
         "blue_ln": flat("go_blue_ln", "#101C52"),
-        "blue_sh": flat("go_blue_sh", "#16286A"),         # bóng đổ cứng dưới ve áo lên áo xanh
+        "blue_sh": flat("go_blue_sh", "#16286A"),         # hard drop shadow under the lapel onto the blue undershirt
         "rope": toon("goku_rope", "#E8C46E", "#B88C38", "#FFE6A6", rim=0.5),
         "red": toon("go_red", "#C8262E", "#861820", "#EE5A60", rim=0.4),
     }
     fwd = lambda p: Vector((0, 1, 0))
 
-    # ── 1. cổ chữ V sâu: áo xanh dán ôm ngực, ve áo cam chồng mép, nét mực ──
+    # ── 1. deep V-neck: blue undershirt hugging the chest, orange lapels overlapping the edge, ink lines ──
     try:
-        Z0, Z1, XP, W = 0.29, 0.122, 0.008, 0.104         # đỉnh V (ngang chân cổ, dưới cằm) → mũi V; mũi lệch nhẹ (vạt trái đè phải)
+        Z0, Z1, XP, W = 0.29, 0.122, 0.008, 0.104         # top of the V (level with the neck base, under the chin) → V tip; tip slightly off-center (left flap over right)
 
-        def vx(side, v):                                   # mép V tại tham số v (0: trên, 1: mũi), side ±1
+        def vx(side, v):                                   # V edge at parameter v (0: top, 1: tip), side ±1
             return XP + (side * W - XP) * (1 - v) ** 0.78
 
         vz = lambda v: Z0 + (Z1 - Z0) * v
-        oy = lambda v: -0.035 - 0.095 * min(1.0, v * 3.0)  # gốc bám: sát cổ ở hàng trên → áo xanh nối liền cổ áo
+        oy = lambda v: -0.035 - 0.095 * min(1.0, v * 3.0)  # snap origin: close to the neck on the top row → blue undershirt joins the collar seamlessly
         new.append(_go_patch("go_undershirt", torso,
                              lambda u, v: Vector((vx(-1, v) + (vx(1, v) - vx(-1, v)) * u, oy(v), vz(v) + 0.004)),
                              16, 18, None, 0.0022, M["blue"], c))
-        # bóng đổ cứng của ve áo hắt lên áo xanh (cel shadow): dải tối bám mép trái V
+        # hard shadow cast by the lapel onto the blue undershirt (cel shadow): dark band along the left edge of the V
         new.append(_go_patch("go_undershirt_sh", torso,
                              lambda u, v: Vector((vx(1, v) - 0.016 * (1 - v) ** 0.6 * u - 0.002, oy(v), vz(v))),
                              3, 18, None, 0.0032, Mx["blue_sh"], c))
@@ -107,16 +107,16 @@ def _go_build():
                             lambda u, v, s=side: Vector((vx(s, v) + s * (u * wd - 0.003), oy(v), vz(v) + (0.002 if s > 0 else 0))),
                             3, 20, None, 0.0048 if side > 0 else 0.004, M["gi"], c)
             new.append(lap)
-            # nét mực mép trong ve áo (giáp áo xanh) + nét nhạt mép ngoài
+            # ink line on the inner lapel edge (against the blue undershirt) + faint line on the outer edge
             new.append(_go_snap_stroke(f"go_lapel_ink_{side}", torso, [(vx(side, v) - side * 0.003, oy(v), vz(v)) for v in (0, 0.33, 0.66, 1.0)],
                                        0.0026, Mx["ink"], c, off=0.006))
             new.append(_go_snap_stroke(f"go_lapel_out_{side}", torso,
                                        [(vx(side, v) + side * (wd - 0.002), oy(v), vz(v) - 0.004) for v in (0.02, 0.4, 0.75, 0.97)],
                                        0.0018, Mx["fold"], c, off=0.0058))
-        # vạt áo chồng: mép vạt trái chạy từ mũi V chéo xuống đai (phía tay phải Goku)
+        # overlapping flap: left flap edge running diagonally from the V tip down to the belt (on Goku's right-hand side)
         new.append(_gd_stroke("go_overlap", torso, [(XP + 0.002, -0.4, Z1 + 0.004), (-0.012, -0.4, 0.085), (-0.03, -0.4, 0.035), (-0.04, -0.4, -0.005)],
                               fwd, 0.0024, Mx["fold_dk"], c, off=0.0045))
-        # nếp ngực cong dưới ve áo + nếp nách (cel line)
+        # curved chest fold under the lapel + armpit fold (cel line)
         for side in (-1, 1):
             new.append(_gd_stroke(f"go_chest_fold_{side}", torso,
                                   [(side * 0.13, -0.4, 0.215), (side * 0.112, -0.4, 0.19), (side * 0.098, -0.4, 0.165)],
@@ -127,9 +127,9 @@ def _go_build():
         import traceback; traceback.print_exc()
         print("GO v-neck failed", e)
 
-    # ── 2. vai áo cam: bỏ (v19) — thân áo cam đã phủ tới vai; 2 khối vai rời nhô lên như cục núm ở đầu ve áo ──
+    # ── 2. orange shoulders: removed (v19) — the orange gi body already covers the shoulders; 2 separate shoulder blocks stuck out like knobs at the lapel tips ──
 
-    # ── 3. đai: nếp nhăn ngang vải đai ──
+    # ── 3. belt: horizontal wrinkles on the belt cloth ──
     try:
         belt = obj["goku_belt"]
         hip_dir = lambda p: Vector((-p.x, -p.y, 0)).normalized()
@@ -139,24 +139,24 @@ def _go_build():
     except Exception as e:
         print("GO belt folds failed", e)
 
-    # ── 4. quần: nếp dồn trên cổ giày + nếp gối ──
+    # ── 4. pants: folds bunching over the boot tops + knee folds ──
     try:
         for side, sx in (("R", -1), ("L", 1)):
             sp, th = obj[f"goku_shinpant_{side}"], obj[f"goku_thigh_{side}"]
             rad_in = lambda p: (Vector((-p.x, -p.y, 0)).normalized() if Vector((p.x, p.y)).length > 1e-4 else Vector((0, 1, 0)))
-            ring = lambda a, z, R=0.2: (R * math.sin(math.radians(a)), -R * math.cos(math.radians(a)), z)  # a=0: trước
+            ring = lambda a, z, R=0.2: (R * math.sin(math.radians(a)), -R * math.cos(math.radians(a)), z)  # a=0: front
 
             def fold(tag, pts, r=0.0028, mat=Mx["fold"], target=sp):
                 ob = _gd_stroke(f"go_{tag}_{side}", target, pts, rad_in, r, mat, c, off=0.003)
                 if ob:
                     new.append(ob)
-            # các nếp chữ "く" quanh túm quần (trước, hai bên, sau)
+            # "く"-shaped folds around the pant cuff (front, both sides, back)
             for k, a in enumerate((-35, 20, 75, 130, 200, 260)):
                 a2 = a * sx
                 fold(f"bunch{k}", [ring(a2 - 14, -0.04), ring(a2, -0.068), ring(a2 + 12, -0.092)], 0.0032, Mx["fold_dk"] if k < 2 else Mx["fold"])
-            # nếp ngang ở mép túm quần
+            # horizontal fold at the cuff edge
             fold("gather", [ring(sx * -60, -0.098), ring(sx * -20, -0.102), ring(sx * 20, -0.1), ring(sx * 60, -0.097)], 0.003, Mx["fold_dk"])
-            # nếp gối + nếp dọc ống quần
+            # knee folds + vertical folds along the pant leg
             fold("knee", [ring(sx * -30, -0.215), ring(sx * 0, -0.235), ring(sx * 25, -0.225)], 0.0027, Mx["fold"], th)
             fold("thighlong", [ring(sx * 40, -0.05), ring(sx * 48, -0.12), ring(sx * 42, -0.19)], 0.0025, Mx["fold"], th)
             fold("thighback", [ring(sx * 160, -0.07), ring(sx * 178, -0.14), ring(sx * 170, -0.21)], 0.0025, Mx["fold"], th)
@@ -165,7 +165,7 @@ def _go_build():
         import traceback; traceback.print_exc()
         print("GO pant folds failed", e)
 
-    # ── 5. giày: sọc đỏ dọc hai bên + mũi giày, dây buộc vàng quấn cổ chân + nút thắt ──
+    # ── 5. boots: vertical red stripes on both sides + toe, yellow laces wrapped around the ankle + knot ──
     try:
         for side, sx in (("R", -1), ("L", 1)):
             bt, ft, kn = obj[f"goku_boot_{side}"], obj[f"goku_foot_{side}"], G[f"kn_{side}"]

@@ -1,9 +1,9 @@
-# Dựng toàn bộ cảnh "Saiyan Awakening" bằng code: Namek, Goku/Frieza (placeholder toon),
-# vũ đạo 20 giây, camera 10 shot, Empty FX (track hiệu ứng), marker haptic/cut.
+# Builds the whole "Saiyan Awakening" scene in code: Namek, Goku/Frieza (toon placeholders),
+# 20-second choreography, 10-shot camera, FX Empties (effect tracks), haptic/cut markers.
 #
-# Chạy: /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup \
+# Run: /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup \
 #         -P blender/scripts/build_scene.py
-# Kết quả: blender/goku_vs_frieza.blend
+# Output: blender/goku_vs_frieza.blend
 import bpy, bmesh, glob, math, os, random
 from mathutils import Vector, Quaternion, Euler, Matrix
 
@@ -17,7 +17,7 @@ random.seed(7)
 
 if bpy.app.background:
     bpy.ops.wm.read_factory_settings(use_empty=True)
-else:                                   # chạy trong Blender đang mở (MCP lookdev): giữ addon
+else:                                   # running inside an already open Blender (MCP lookdev): keep addons
     bpy.ops.wm.read_homefile(use_empty=True)
 scene = bpy.context.scene
 scene.name = "Cinematic"
@@ -32,14 +32,14 @@ def setup_render():
     scene.frame_start, scene.frame_end = 0, FRAMES - 1
     r.film_transparent = False
     r.filter_size = 1.0
-    r.use_motion_blur = False          # render_passes.py bật cho bản final
-    r.motion_blur_shutter = 0.3        # v23: 0.5 nhoè nhân vật khi bay nhanh, aura app vẽ lên phần nhoè trông như lệch lớp
+    r.use_motion_blur = False          # render_passes.py enables it for the final
+    r.motion_blur_shutter = 0.3        # v23: 0.5 smeared fast-flying characters; the app's aura over the smear looked misaligned
     try:
-        r.motion_blur_position = "START"  # tránh nhoè qua điểm cut
+        r.motion_blur_position = "START"  # avoid blurring across a cut
     except TypeError:
         pass
     scene.eevee.taa_render_samples = 16
-    scene.eevee.use_fast_gi = False      # GI screen-space gây lấm tấm nhiễu qua ngưỡng toon
+    scene.eevee.use_fast_gi = False      # screen-space GI causes speckle noise across the toon threshold
     scene.eevee.use_raytracing = False
     scene.view_settings.view_transform = "Standard"
     scene.view_settings.look = "None"
@@ -64,8 +64,8 @@ def hexc(h, a=1.0):
 
 
 def _energy_tail(nt, surface, energy):
-    """Mọi material kết thúc bằng Mix(surface, Emission(energy)): render_passes.py bật
-    `energy_mode` = 1 để xuất lớp năng lượng (chỉ vật phát sáng còn trắng)."""
+    """Every material ends in Mix(surface, Emission(energy)): render_passes.py sets
+    `energy_mode` = 1 to output the energy layer (only emissive objects stay white)."""
     N, L = nt.nodes, nt.links
     ev = N.new("ShaderNodeValue"); ev.name = "energy"; ev.outputs[0].default_value = energy
     ee = N.new("ShaderNodeEmission"); ee.inputs["Color"].default_value = (1, 1, 1, 1)
@@ -81,7 +81,7 @@ def _energy_tail(nt, surface, energy):
 
 def toon(name, base, shade, light=None, glow=0.0, energy=0.0, threshold=0.2, rim=0.0, spec=0.0, bands=0.0):
     """Cel-shading: Diffuse → Shader to RGB → ColorRamp (Constant) → Emission.
-    rim: viền sáng ở mép phía được chiếu (kiểu anime); spec: đốm bóng gắt (Frieza, tóc)."""
+    rim: lit rim on the lit-side edges (anime style); spec: hard specular highlight (Frieza, hair)."""
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -102,7 +102,7 @@ def toon(name, base, shade, light=None, glow=0.0, energy=0.0, threshold=0.2, rim
     L.new(s2r.outputs["Color"], ramp.inputs["Fac"])
     color = ramp.outputs["Color"]
     if rim > 0 or spec > 0:
-        # pháp tuyến trong không gian camera: viền sáng + đốm bóng luôn hiện, không phụ thuộc hướng đèn
+        # camera-space normal: rim light + specular always show, independent of light direction
         geo = N.new("ShaderNodeNewGeometry")
         vt = N.new("ShaderNodeVectorTransform")
         vt.vector_type, vt.convert_from, vt.convert_to = "NORMAL", "WORLD", "CAMERA"
@@ -132,7 +132,7 @@ def toon(name, base, shade, light=None, glow=0.0, energy=0.0, threshold=0.2, rim
             color = mix_toward(color, both.outputs[0], rim, hexc(light or "#FFFFFF"))
         if spec > 0:
             color = mix_toward(color, dot_gt((-0.35, 0.55, 0.76), 0.93), spec, (1, 1, 1, 1))
-    if bands > 0:                                # vân đá nằm ngang (cột đá Namek)
+    if bands > 0:                                # horizontal rock strata (Namek rock spires)
         geo2 = N.new("ShaderNodeNewGeometry")
         sep = N.new("ShaderNodeSeparateXYZ"); L.new(geo2.outputs["Position"], sep.inputs[0])
         wob = N.new("ShaderNodeTexNoise"); wob.inputs["Scale"].default_value = 0.35
@@ -162,7 +162,7 @@ def toon(name, base, shade, light=None, glow=0.0, energy=0.0, threshold=0.2, rim
 
 
 def toon_tex(name, png, tile=8.0, shade=(0.68, 0.74, 0.8), threshold=0.25, fallback=None, flow=0.0, box=False, haze=0.38):
-    """Cel-shading trên ảnh vẽ tay lặp lại theo toạ độ world XY (mặt đất): vùng tối = ảnh × `shade`."""
+    """Cel shading over a hand-painted image tiled by world XY coordinates (ground): shadow area = image × `shade`."""
     path = os.path.join(TEX, png)
     if not os.path.exists(path):
         return fallback
@@ -175,7 +175,7 @@ def toon_tex(name, png, tile=8.0, shade=(0.68, 0.74, 0.8), threshold=0.25, fallb
     geo = N.new("ShaderNodeNewGeometry")
     sc = N.new("ShaderNodeVectorMath"); sc.operation = "SCALE"; sc.inputs["Scale"].default_value = 1.0 / tile
     L.new(geo.outputs["Position"], sc.inputs[0])
-    if flow:                                   # nước trôi: cộng độ lệch theo thời gian vào toạ độ
+    if flow:                                   # flowing water: add a time-based offset to the coordinates
         fv = N.new("ShaderNodeValue"); fv.name = "flow"
         fv.outputs[0].default_value = 0.0; fv.outputs[0].keyframe_insert("default_value", frame=0)
         fv.outputs[0].default_value = flow; fv.outputs[0].keyframe_insert("default_value", frame=FRAMES - 1)
@@ -187,7 +187,7 @@ def toon_tex(name, png, tile=8.0, shade=(0.68, 0.74, 0.8), threshold=0.25, fallb
         L.new(sc.outputs[0], ad.inputs[0]); L.new(comb.outputs[0], ad.inputs[1])
         sc = ad
     t = N.new("ShaderNodeTexImage"); t.image = bpy.data.images.load(path, check_existing=True); t.extension = "REPEAT"
-    if box:                                    # mặt đứng (cột đá): chiếu hộp theo toạ độ world
+    if box:                                    # vertical faces (rock spires): box projection by world coordinates
         t.projection, t.projection_blend = "BOX", 0.25
     L.new(sc.outputs[0], t.inputs["Vector"])
     diff = N.new("ShaderNodeBsdfDiffuse")
@@ -201,7 +201,7 @@ def toon_tex(name, png, tile=8.0, shade=(0.68, 0.74, 0.8), threshold=0.25, fallb
     mx = N.new("ShaderNodeMix"); mx.data_type = "RGBA"
     L.new(lit.outputs[0], mx.inputs[0]); L.new(dark.outputs[2], mx.inputs[6]); L.new(t.outputs["Color"], mx.inputs[7])
     color = mx.outputs[2]
-    if haze:                                   # phối cảnh khí quyển: càng xa camera càng nhạt dần về màu chân trời
+    if haze:                                   # aerial perspective: fades toward the horizon colour with distance from camera
         cam = N.new("ShaderNodeCameraData")
         hz = N.new("ShaderNodeMapRange")
         hz.inputs["From Min"].default_value, hz.inputs["From Max"].default_value = 25.0, 180.0
@@ -211,23 +211,23 @@ def toon_tex(name, png, tile=8.0, shade=(0.68, 0.74, 0.8), threshold=0.25, fallb
         hm.inputs[7].default_value = hexc("#86B9A2")
         L.new(hz.outputs["Result"], hm.inputs[0]); L.new(color, hm.inputs[6])
         color = hm.outputs[2]
-    dim = N.new("ShaderNodeValue"); dim.name = "dim"; dim.outputs[0].default_value = 1.0   # choreograph tối dần khi trời giông
+    dim = N.new("ShaderNodeValue"); dim.name = "dim"; dim.outputs[0].default_value = 1.0   # dimmed by choreograph during the storm
     em = N.new("ShaderNodeEmission"); L.new(color, em.inputs["Color"]); L.new(dim.outputs[0], em.inputs["Strength"])
     _energy_tail(nt, em.outputs[0], 0.0)
     return m
 
 
 def rock_small_mat(name="rock_small"):
-    """Đá nhỏ trên cỏ kiểu anime: 3 tông cel (bóng / nền / mặt trên sáng theo pháp tuyến world, nên nhìn từ trên
-    xuống vẫn ra khối), vân rock.jpg chỉ điều sắc độ nhẹ, xanh xám ngả lam hợp tông Namek, có haze như mặt đất."""
+    """Anime-style small rocks on grass: 3 cel tones (shadow / base / top lit by world normal, so they still read as solid
+    from above), rock.jpg grain only nudges the shade, blue-leaning grey-green to match Namek, with haze like the ground."""
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
     for n in list(nt.nodes):
         nt.nodes.remove(n)
     N, L = nt.nodes, nt.links
-    # sáng/tối theo N·L với hướng key_sun (50°, 0, −35°) thay vì Shader-to-RGB: đá nhỏ + viền solidify tự đổ bóng
-    # lên chính nó khi shadow map thô (camera xa) → cả hòn đá thành một mảng tối
+    # light/dark from N·L toward key_sun (50°, 0, −35°) instead of Shader-to-RGB: small rocks + solidify outline
+    # self-shadow under a coarse shadow map (distant camera) → the whole rock turns into one dark patch
     geo = N.new("ShaderNodeNewGeometry")
     ndl = N.new("ShaderNodeVectorMath"); ndl.operation = "DOT_PRODUCT"
     L.new(geo.outputs["Normal"], ndl.inputs[0]); ndl.inputs[1].default_value = Vector((-0.44, -0.63, 0.64)).normalized()
@@ -236,9 +236,9 @@ def rock_small_mat(name="rock_small"):
     sep = N.new("ShaderNodeSeparateXYZ"); L.new(geo.outputs["Normal"], sep.inputs[0])
     top = N.new("ShaderNodeMath"); top.operation = "GREATER_THAN"; top.inputs[1].default_value = 0.72
     L.new(sep.outputs["Z"], top.inputs[0])
-    side = N.new("ShaderNodeMath"); side.operation = "LESS_THAN"; side.inputs[1].default_value = 0.25   # mặt hông dốc: tối hơn
+    side = N.new("ShaderNodeMath"); side.operation = "LESS_THAN"; side.inputs[1].default_value = 0.25   # steep sides: darker
     L.new(sep.outputs["Z"], side.inputs[0])
-    c = N.new("ShaderNodeMix"); c.data_type = "RGBA"            # bóng (không được chiếu) ↔ nền
+    c = N.new("ShaderNodeMix"); c.data_type = "RGBA"            # shadow (unlit) ↔ base
     c.inputs[6].default_value = hexc("#3C5C5D"); c.inputs[7].default_value = hexc("#698B85")
     L.new(lit.outputs[0], c.inputs[0])
     sd = N.new("ShaderNodeMix"); sd.data_type = "RGBA"
@@ -251,7 +251,7 @@ def rock_small_mat(name="rock_small"):
     L.new(k2.outputs[0], hi.inputs[0]); L.new(sd.outputs[2], hi.inputs[6])
     color = hi.outputs[2]
     path = os.path.join(TEX, "rock.jpg")
-    if os.path.exists(path):                    # vân đá: chỉ nhân sắc độ 0.86–1.08, không đổi màu
+    if os.path.exists(path):                    # rock grain: only scales the shade by 0.86–1.08, no hue shift
         sc = N.new("ShaderNodeVectorMath"); sc.operation = "SCALE"; sc.inputs["Scale"].default_value = 1.0 / 0.7
         L.new(geo.outputs["Position"], sc.inputs[0])
         t = N.new("ShaderNodeTexImage"); t.image = bpy.data.images.load(path, check_existing=True)
@@ -278,7 +278,7 @@ def rock_small_mat(name="rock_small"):
 
 
 def rock_lump(bm, center, r, rng, squash=0.72):
-    """Một hòn đá nhỏ có khối: icosphere méo ngẫu nhiên, đáy phẳng chìm nhẹ, ~70% nhô khỏi mặt cỏ."""
+    """A small solid rock: randomly warped icosphere, flat bottom sunk slightly, ~70% above the grass."""
     tmp = bmesh.new()
     bmesh.ops.create_icosphere(tmp, subdivisions=1, radius=r)
     rot = Euler((rng.uniform(-0.25, 0.25), rng.uniform(-0.25, 0.25), rng.uniform(0, 6.3))).to_matrix()
@@ -286,13 +286,13 @@ def rock_lump(bm, center, r, rng, squash=0.72):
     for v in tmp.verts:
         q = Vector((v.co.x * sx, v.co.y * sy, v.co.z * squash)) * rng.uniform(0.86, 1.12)
         q = rot @ q
-        q.z = max(q.z, -r * squash * 0.3)       # đáy phẳng
+        q.z = max(q.z, -r * squash * 0.3)       # flat bottom
         v.co = q + Vector((center[0], center[1], r * squash * 0.3 - 0.02))
     _merge(bm, tmp)
 
 
 def tex_mat(name, png, strength=1.0, energy=0.0):
-    """Decal mặt vẽ sẵn (face_textures.py): ảnh RGBA → Emission, phần trong suốt bỏ qua (dithered)."""
+    """Pre-painted face decal (face_textures.py): RGBA image → Emission, transparent parts discarded (dithered)."""
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -307,9 +307,9 @@ def tex_mat(name, png, strength=1.0, energy=0.0):
     mix = N.new("ShaderNodeMixShader")
     L.new(t.outputs["Alpha"], mix.inputs[0]); L.new(tr.outputs[0], mix.inputs[1]); L.new(em.outputs[0], mix.inputs[2])
     _energy_tail(nt, mix.outputs[0], energy)
-    # lớp năng lượng cũng phải theo alpha, nếu không cả miếng dán chữ nhật sẽ sáng lên
-    # so theo tên: wrapper Python của node bpy tạo mới mỗi lần truy cập nên `is not` luôn đúng (trước v25 lỗi này nối
-    # nhầm → lớp energy không theo alpha, cả miếng dán mắt SSJ sáng thành mảng chữ nhật, app bloom mờ trắng nửa mặt)
+    # the energy layer must follow alpha too, otherwise the whole rectangular decal lights up
+    # compare by name: bpy node wrappers are recreated on every access so `is not` is always true (before v25 this bug
+    # miswired → energy ignored alpha, the whole SSJ eye decal glowed as a rectangle, app bloom whitened half the face)
     ee = next(n for n in N if n.type == "EMISSION" and n.name != em.name)
     tail = next(n for n in N if n.type == "MIX_SHADER" and n.name != mix.name)
     tr2 = N.new("ShaderNodeBsdfTransparent")
@@ -317,8 +317,8 @@ def tex_mat(name, png, strength=1.0, energy=0.0):
     L.new(t.outputs["Alpha"], m2.inputs[0]); L.new(tr2.outputs[0], m2.inputs[1]); L.new(ee.outputs[0], m2.inputs[2])
     L.new(m2.outputs[0], tail.inputs[2])
     if energy > 0:
-        # v25 chỉ phần màu (mống mắt xanh) phát sáng: tròng trắng + mi đen không vào lớp energy
-        # (trước cả con mắt trắng loé → app bloom thành mảng mờ trắng che nửa mặt Goku SSJ)
+        # v25 only the coloured part (green iris) glows: eye whites + black lashes stay out of the energy layer
+        # (before, the whole eye flashed white → app bloom turned it into a white haze covering half of SSJ Goku's face)
         sp = N.new("ShaderNodeSeparateColor"); L.new(t.outputs["Color"], sp.inputs[0])
         mx = N.new("ShaderNodeMath"); mx.operation = "MAXIMUM"
         L.new(sp.outputs[1], mx.inputs[0]); L.new(sp.outputs[2], mx.inputs[1])
@@ -370,7 +370,7 @@ M = {
     "trunk": toon("trunk", "#B9B07E", "#7D7550"),
     "canopy": toon("canopy", "#6FC6A0", "#3F8C6E", "#A6E8C4"),
     "crack": flat("crack", "#FFD45C", 1.2, energy=0.6),
-    "crack_edge": flat("crack_edge", "#4A2414", 1.0),   # khe nứt rực sáng lúc gồng khí
+    "crack_edge": flat("crack_edge", "#4A2414", 1.0),   # crack glows bright while powering up Ki
     "cloud": toon("cloud", "#6F9A82", "#46685A", "#A9CDB6", threshold=0.3),
     "debris": toon("debris", "#8FA890", "#5C7564"),
     "grass_dark": toon("grass_dark", "#4F9480", "#356657", threshold=0.25),
@@ -382,7 +382,7 @@ M = {
 
 
 # ───────────────────────────── geometry helpers ─────────────────────────────
-# nét viền màu (colored lineart): mỗi chất liệu nhân vật có viền là tông tối của chính nó thay vì nâu đen chung
+# colored lineart: each character material's outline is a dark shade of its own colour instead of a shared brown-black
 LINE_COLORS = {"skin": "#8E4A30", "gi": "#7E2C0C", "blue": "#0E1A4A", "hair": "#05050C", "hair_ssj": "#A0560A",
                "f_white": "#3E2A66", "f_purple": "#2A0C44", "boot_tie": "#5A0C10", "white": "#3A3A55",
                "rock_small": "#24403C"}
@@ -454,7 +454,7 @@ def torus(name, R, r, mat, col, seg=32, ring=10, scale=(1, 1, 1), outline=0.005)
 
 
 def spikes(name, center_r, spec, mat, col, cap=None, outline=0.006):
-    """Tóc anime: gom nhiều chóp nón (và một chỏm cap) thành 1 mesh, gốc ở tâm đầu."""
+    """Anime hair: merges many cones (and one cap) into 1 mesh, origin at the head centre."""
     bm = bmesh.new()
     if cap:
         tmp = bmesh.new()
@@ -526,7 +526,7 @@ FONT_PATHS = ["/System/Library/Fonts/ヒラギノ角ゴシック W8.ttc", "/Syst
 
 
 def capsule(name, r, length, mat, col, scale=(1, 1, 1), seg=24, outline=0.005):
-    """Viên thuốc trục Z, tâm ở gốc: tay chân bo tròn mềm."""
+    """Z-axis capsule, centred at the origin: softly rounded limbs."""
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=seg // 2 + 1, radius=r)
     for v in bm.verts:
@@ -536,7 +536,7 @@ def capsule(name, r, length, mat, col, scale=(1, 1, 1), seg=24, outline=0.005):
 
 
 def tcap(name, r_top, r_bot, length, mat, col, scale=(1, 1, 1), seg=24, outline=0.005):
-    """Viên thuốc thon: nửa trên bán kính r_top, nửa dưới r_bot (ống quần, bắp tay, eo)."""
+    """Tapered capsule: upper half radius r_top, lower half r_bot (trouser legs, upper arms, waist)."""
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=seg // 2 + 1, radius=1.0)
     for v in bm.verts:
@@ -547,10 +547,10 @@ def tcap(name, r_top, r_bot, length, mat, col, scale=(1, 1, 1), seg=24, outline=
 
 
 def skin_limb(name, prof, joint_a, joint_b, mat, col, seg=28, rfn=None, blend=0.045, outline=0.005):
-    """Tay/chân liền một khối (thay 2 khúc cứng nối ở khớp như ma-nơ-canh): biên dạng [(z, r)] trong không gian khớp A
-    chạy qua khớp B (z = B.location.z) tới đầu chi. Phần trên đi theo A (vật là con của A), phần dưới bẻ theo B qua
-    Hook có trọng số chuyển mượt quanh khớp (±blend) → khuỷu/gối cong liền như da thật, không gãy khúc, không lộ mép.
-    rfn(t, z, r, w): nắn mặt cắt (cơ bắp), w = trọng số phần dưới (0 trên khớp → 1 dưới khớp)."""
+    """Arm/leg as one piece (not 2 rigid segments joined like a mannequin): profile [(z, r)] in joint A space
+    runs through joint B (z = B.location.z) to the limb end. Upper part follows A (object is A's child), lower part bends
+    with B via a Hook weighted smoothly around the joint (±blend) → elbow/knee bends like skin, no kinks, no seams.
+    rfn(t, z, r, w): shapes the cross-section (muscles), w = lower-part weight (0 above the joint → 1 below the joint)."""
     off = Vector(joint_b.location)
     bm = bmesh.new()
     dl = bm.verts.layers.deform.verify()
@@ -576,18 +576,18 @@ def skin_limb(name, prof, joint_a, joint_b, mat, col, seg=28, rfn=None, blend=0.
             bm.faces.new((cv, ring[i], ring[(i + 1) % seg]))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     ob = _obj(name, bm, mat, col, outline=outline)
-    ob.vertex_groups.new(name="bend")            # nhóm 0 = lớp deform đã ghi ở trên
+    ob.vertex_groups.new(name="bend")            # group 0 = the deform layer written above
     attach(ob, joint_a, (0, 0, 0))
     hk = ob.modifiers.new("bend", "HOOK")
     hk.object, hk.vertex_group, hk.falloff_type = joint_b, "bend", "NONE"
     hk.matrix_inverse = Matrix.Translation(off).inverted()
-    ob.modifiers.move(len(ob.modifiers) - 1, 0)  # bẻ trước, viền (solidify) sau → viền đi theo khớp
+    ob.modifiers.move(len(ob.modifiers) - 1, 0)  # bend first, outline (solidify) after → outline follows the joint
     return ob
 
 
 def lathe(name, prof, mat, col, seg=32, scale=(1, 1, 1), rfn=None, outline=0.005):
-    """Khối tròn xoay quanh trục Z theo biên dạng [(z, r), ...] từ trên xuống (ống quần phồng, đai vải).
-    rfn(t, z, r) → r': chỉnh bán kính theo góc t để nắn nếp vải dồn / ép mặt trong."""
+    """Solid of revolution around Z from profile [(z, r), ...] top to bottom (baggy trousers, cloth sash).
+    rfn(t, z, r) → r': adjusts radius by angle t to shape bunched folds / flatten the inner side."""
     bm = bmesh.new()
     rings = [[bm.verts.new(((rfn(t, z, r) if rfn else r) * math.cos(t) * scale[0],
                             (rfn(t, z, r) if rfn else r) * math.sin(t) * scale[1], z * scale[2]))
@@ -604,12 +604,12 @@ def lathe(name, prof, mat, col, seg=32, scale=(1, 1, 1), rfn=None, outline=0.005
 
 
 def head_dir(az, el):
-    """Hướng từ tâm đầu (local). az=180 là chính diện (-Y), az>180 lệch sang phải nhân vật (-X)."""
+    """Direction from the head centre (local). az=180 is straight front (-Y), az>180 swings to the character's right (-X)."""
     return Vector((math.cos(rad(el)) * math.sin(rad(az)), math.cos(rad(el)) * math.cos(rad(az)), math.sin(rad(el))))
 
 
 def decal(name, parent, center, R, az, el, w, h, mat, col, layer=0, roll=0.0, depth=0.012):
-    """Chi tiết phẳng dán trên mặt cầu của đầu (mắt, má, miệng...), xếp lớp theo `layer`."""
+    """Flat detail stuck on the head sphere (eyes, cheeks, mouth...), stacked by `layer`."""
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=10, radius=1.0)
     bmesh.ops.scale(bm, vec=Vector((w / 2, h / 2, depth / 2)), verts=bm.verts)
@@ -624,15 +624,15 @@ def decal(name, parent, center, R, az, el, w, h, mat, col, layer=0, roll=0.0, de
 
 
 def face_decal(name, parent, center, radii, az, el, w, h, mat, col, layer=0, roll=0.0, grid=10):
-    """Miếng dán có UV ôm sát đầu elip (bán trục `radii`): dùng cho mắt/miệng/má vẽ sẵn.
-    UV +u hướng sang phải nhân vật (-X), +v hướng lên, nên ảnh mắt phải có khoé ngoài ở +u."""
+    """UV-mapped decal hugging the ellipsoid head (semi-axes `radii`): for pre-painted eyes/mouth/cheeks.
+    UV +u points to the character's right (-X), +v points up, so the eye image must have its outer corner at +u."""
     a, b, c = radii
     d0 = head_dir(az, el)
     surf = lambda d: d / math.sqrt((d.x / a) ** 2 + (d.y / b) ** 2 + (d.z / c) ** 2)
     p0 = surf(d0)
     n0 = Vector((p0.x / a ** 2, p0.y / b ** 2, p0.z / c ** 2)).normalized()
     up = (Vector((0, 0, 1)) - n0 * n0.z).normalized()
-    right = n0.cross(up).normalized()          # mặt nhìn -Y: n × up trỏ về -X (phải nhân vật)
+    right = n0.cross(up).normalized()          # face looks -Y: n × up points to -X (character's right)
     q = Quaternion(n0, rad(roll))
     up, right = q @ up, q @ right
     bm = bmesh.new()
@@ -661,8 +661,8 @@ def face_decal(name, parent, center, radii, az, el, w, h, mat, col, layer=0, rol
 
 
 def build_rig(prefix, col, d):
-    """Khung nhân vật bằng Empty (trục trùng world lúc rest). Quy ước: mặt nhìn -Y, tay phải ở -X.
-    +rx ở cột sống = cúi về trước; +rx ở tay/chân buông = vung ra sau; +ry tay phải = dang ra ngoài."""
+    """Character rig made of Empties (axes match world at rest). Convention: faces -Y, right hand at -X.
+    +rx on the spine = lean forward; +rx on hanging arms/legs = swing back; +ry on the right arm = spread outward."""
     R = {}
     R["root"] = empty(f"{prefix}", col, size=0.4)
     R["hips"] = empty(f"{prefix}_hips", col, R["root"], (0, 0, d["hips"]))
@@ -677,7 +677,7 @@ def build_rig(prefix, col, d):
 
 
 def eyes(prefix, parent, hc, R, col, iris_mats, spread=20, el=0, w=0.058, h=0.078):
-    """Mắt anime: lòng trắng · tròng (một bản cho mỗi material trong iris_mats) · đồng tử · 2 điểm sáng."""
+    """Anime eye: white · iris (one copy per material in iris_mats) · pupil · 2 highlights."""
     out = {k: [] for k in iris_mats}
     for side, sgn in (("R", 1), ("L", -1)):
         az = 180 + sgn * spread
@@ -691,7 +691,7 @@ def eyes(prefix, parent, hc, R, col, iris_mats, spread=20, el=0, w=0.058, h=0.07
 
 
 def _lerp_tab(tab, x):
-    """Nội suy tuyến tính theo bảng [(x, y), ...] (x tăng dần)."""
+    """Linear interpolation over a table [(x, y), ...] (x ascending)."""
     if x <= tab[0][0]:
         return tab[0][1]
     for (x0, y0), (x1, y1) in zip(tab, tab[1:]):
@@ -701,20 +701,20 @@ def _lerp_tab(tab, x):
 
 
 def _ell_surf(radii, d):
-    """Điểm trên mặt elip đầu theo hướng d (local quanh tâm đầu) + pháp tuyến tại đó."""
+    """Point on the ellipsoid head surface along direction d (local to the head centre) + the normal there."""
     a, b, c = radii
     p = d / math.sqrt((d.x / a) ** 2 + (d.y / b) ** 2 + (d.z / c) ** 2)
     return p, Vector((p.x / a ** 2, p.y / b ** 2, p.z / c ** 2)).normalized()
 
 
 def _azel(d):
-    """Ngược của head_dir: hướng → (az, el) độ; az=180 chính diện."""
+    """Inverse of head_dir: direction → (az, el) in degrees; az=180 is straight front."""
     return math.degrees(math.atan2(d.x, d.y)) % 360, math.degrees(math.asin(max(-1.0, min(1.0, d.z))))
 
 
 def _hl_at(hairline, so):
-    """el chân tóc tại độ lệch có dấu so (>0: phía phải nhân vật). hairline: list [(độ lệch, el)] đối xứng, hoặc
-    dict(tab=list, bangs=[(tâm, độ sâu, nửa rộng)]) → mép tóc trước cắt răng cưa thành các mũi mái nhọn rủ xuống trán."""
+    """Hairline el at a signed offset (>0: character's right side). hairline: symmetric list [(offset, el)], or
+    dict(tab=list, bangs=[(centre, depth, half width)]) → front hair edge cut into sawtooth pointed bangs over the forehead."""
     if isinstance(hairline, dict):
         el = _lerp_tab(hairline["tab"], abs(so))
         for tip, depth, hw in hairline["bangs"]:
@@ -724,9 +724,9 @@ def _hl_at(hairline, so):
 
 
 def goku_hair_shell(radii, hairline, thick, seg=48, ring=28):
-    """Chỏm tóc ôm sát đầu có chân tóc rõ: trên đường chân tóc dày `thick(el)`, dưới thì chìm vào đầu.
-    hairline: [(độ lệch khỏi chính diện 0..180, el chân tóc)] → trán lộ ra, tai không bị che.
-    thick(el, off): độ dày tóc theo el và độ lệch khỏi chính diện (dày hơn ở mái trước để nhìn từ dưới vẫn thấy tóc)."""
+    """Hair cap hugging the head with a clear hairline: `thick(el)` thick above the hairline, sunk into the head below.
+    hairline: [(offset from front 0..180, hairline el)] → forehead exposed, ears not covered.
+    thick(el, off): hair thickness by el and front offset (thicker at the front bangs so hair still shows from below)."""
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=ring, radius=1.0)
     hsh = bm.verts.layers.float.new("hsh")
@@ -734,7 +734,7 @@ def goku_hair_shell(radii, hairline, thick, seg=48, ring=28):
         d = v.co.normalized()
         az, el = _azel(d)
         off = abs(((az - 180) + 180) % 360 - 180)
-        v[hsh] = 0.0 if off < 60 and el > 30 else 1.0     # chỏm lộ giữa các lọn: tông cam, trừ phía trên mái trước
+        v[hsh] = 0.0 if off < 60 and el > 30 else 1.0     # cap between locks: orange tone, except above the front bangs
         hl = _hl_at(hairline, ((az - 180) + 180) % 360 - 180)
         k = max(0.0, min(1.0, (el - hl + 5) / 9))
         k = k * k * (3 - 2 * k)
@@ -744,8 +744,8 @@ def goku_hair_shell(radii, hairline, thick, seg=48, ring=28):
 
 
 def goku_lock(radii, path, w, th, lift=0.011, root_lift=0.03, rings=14, sides=8, arch=0.008):
-    """Lọn tóc mái: path = [(az, el), ...] từ chân tóc tới ngọn, dẹt theo mặt đầu, thon nhọn, vồng ra khỏi trán
-    (`arch`) rồi hạ xuống còn cách da `lift` ở ngọn để không cắt vào lông mày."""
+    """Bang lock: path = [(az, el), ...] from root to tip, flattened along the head, tapered, arching off the forehead
+    (`arch`) then dropping to `lift` above the skin at the tip so it doesn't cut into the eyebrows."""
     bm = bmesh.new()
     pts = []
     for i in range(rings + 1):
@@ -770,8 +770,8 @@ def goku_lock(radii, path, w, th, lift=0.011, root_lift=0.03, rings=14, sides=8,
     return bm
 
 
-# mặt cắt lọn tóc anime: 2 cung lồi gặp nhau ở gờ sống (+y) và ở 2 mép → mỗi nửa lọn bo mượt (một ranh sáng-tối gọn),
-# chỉ gờ + mép là cạnh sắc chia mặt sáng / mặt tối như tóc FighterZ (không lấm tấm mặt kim cương)
+# anime lock cross-section: 2 convex arcs meeting at the ridge (+y) and the 2 edges → each half smoothly rounded (one clean
+# light/dark split); only ridge + edges are hard, splitting lit / shadow faces like FighterZ hair (no speckled facets)
 LOCK_SECTION = [(-1, 0), (-0.75, 0.45), (-0.45, 0.8), (0, 1.1), (0.45, 0.8), (0.75, 0.45), (1, 0),
                 (0.6, -0.4), (0, -0.55), (-0.6, -0.4)]
 
@@ -788,17 +788,17 @@ def _blade_faces(bm, loops, tip_co):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
 
 
-GOKU_HAIR_HL = {}                                # đường sáng trên từng lọn (toạ độ local của mesh tóc) → extras/goku_details.py
+GOKU_HAIR_HL = {}                                # highlight line per lock (hair mesh local coords) → extras/goku_details.py
 
 
 def goku_blade(radii, az, el, d0, d1, L, W, T=None, face=None, sink=0.024, rings=16, hl=None, roll=0.0, sweep=0.0,
                twist=0.0, root=0.0, tri=False):
-    """Lọn tóc lớn kiểu SSJ: gốc rộng cắm trong chỏm tóc ở (az, el), đi theo Bezier bậc 2 (hướng gốc d0 → hướng ngọn d1,
-    mỗi hướng là (az, el)), bản rộng W phình ở 1/4 đầu rồi thon nhọn, dày T, gờ sống quay ra ngoài theo `face`.
-    sweep: hất phần cao ra sau (+Y) như ngọn lửa trong gió. hl: list nhận khung từng vòng cho extras.
-    twist: xoắn dần mặt lọn dọc chiều dài (độ ở ngọn) → nhìn ngang vẫn thấy bản rộng. root: phần gốc (theo s) mang
-    thuộc tính "hsh" → shader tô tông cam tối (bóng lọn phía trên đổ xuống lọn phía dưới)."""
-    if tri:                                      # gai tam giác mất phần bụng lá → bù bản gốc rộng hơn
+    """Large SSJ lock: wide root planted in the hair cap at (az, el), follows a quadratic Bezier (root direction d0 → tip
+    direction d1, each (az, el)), width W swells in the first quarter then tapers to a point, thickness T, ridge out per `face`.
+    sweep: flicks the upper part back (+Y) like a flame in the wind. hl: list that receives each ring's frame for extras.
+    twist: twists the lock along its length (degrees at tip) → the wide side still shows from the side. root: the root part
+    (by s) gets the "hsh" attribute → shader paints dark orange (shadow of the upper lock on the one below)."""
+    if tri:                                      # triangular spike loses the leaf belly → compensate with a wider root
         W *= 1.28
     T = T or W * 0.5
     p, nrm = _ell_surf(radii, head_dir(az, el))
@@ -807,7 +807,7 @@ def goku_blade(radii, az, el, d0, d1, L, W, T=None, face=None, sink=0.024, rings
     P2 = P1 + head_dir(*d1) * L * 0.5
     bez = lambda s: P0 * (1 - s) ** 2 + P1 * 2 * s * (1 - s) + P2 * s * s
     spine = lambda s: bez(s) + Vector((0, sweep * max(0.0, bez(s).z - 0.12) ** 1.3, 0))
-    if face is None:                             # lọn hai bên quay mặt rộng chéo về phía trước (góc máy chủ yếu từ trước)
+    if face is None:                             # side locks face diagonally forward (cameras are mostly frontal)
         off = (az - 180 + 180) % 360 - 180
         face = (180 + (off * 0.7 if abs(off) <= 115 else off), 22)
     F = head_dir(*face)
@@ -823,7 +823,7 @@ def goku_blade(radii, az, el, d0, d1, L, W, T=None, face=None, sink=0.024, rings
         if roll or twist:
             n = Quaternion(t, rad(roll + twist * s)) @ n
         w = t.cross(n)
-        hw = W * 0.5 * ((1 - s) ** 0.95 if tri else (1 - s) ** 0.75 * (1 + 0.8 * s))   # tri: gai tam giác (tóc đen)
+        hw = W * 0.5 * ((1 - s) ** 0.95 if tri else (1 - s) ** 0.75 * (1 + 0.8 * s))   # tri: triangular spike (black hair)
         ht = T * 0.5 * (1 - s) ** 0.6
         sh = max(0.0, 1.0 - s / root) if root > 0 else 0.0
         ring = [bm.verts.new(P[i] + w * x * hw + n * y * ht) for x, y in LOCK_SECTION]
@@ -838,14 +838,14 @@ def goku_blade(radii, az, el, d0, d1, L, W, T=None, face=None, sink=0.024, rings
 
 
 def _goku_thick(t0, top, front):
-    """Độ dày tóc: mỏng ở thái dương/gáy, dày dần lên đỉnh, phồng thêm một gờ ở mái trước (el≈38)."""
+    """Hair thickness: thin at temples/nape, thickening toward the crown, with an extra bulge at the front bangs (el≈38)."""
     return lambda el, off: (t0 + top * max(0.0, el) / 90
                             + front * math.exp(-((el - 38) / 16) ** 2) * max(0.0, math.cos(math.radians(off))))
 
 
 def goku_hair(name, radii, blades, mat, col, hairline, thick, locks=(), outline=0.007, sweep=0.0, tri=False):
-    """Tóc Goku: chỏm ôm đầu có chân tóc + các lọn lớn dẹt có gờ (goku_blade) xếp lớp thành khối lửa
-    + lọn mái rủ trên trán (goku_lock), gộp 1 mesh. Cạnh gờ/mép lọn để sắc (2 mặt sáng-tối kiểu cel)."""
+    """Goku hair: head-hugging cap with hairline + large flat ridged locks (goku_blade) layered into a flame mass
+    + bangs over the forehead (goku_lock), merged into 1 mesh. Ridges/edges kept sharp (2 lit/shadow faces, cel style)."""
     bm = goku_hair_shell(radii, hairline, thick, *((144, 48) if isinstance(hairline, dict) else ()))
     hl = GOKU_HAIR_HL.setdefault(name, [])
     for b in blades:
@@ -854,7 +854,7 @@ def goku_hair(name, radii, blades, mat, col, hairline, thick, locks=(), outline=
     for lk in locks:
         _merge(bm, goku_lock(radii, *lk))
     ob = _obj(name, bm, mat, col, smooth=True, outline=outline)
-    ob.visible_shadow = False                    # không tự đổ bóng: mỗi lọn chỉ 2 tông theo gờ, không loang mảng tối
+    ob.visible_shadow = False                    # no self-shadow: 2 tones per lock split by the ridge, no dark blotches
     try:
         ob.data.set_sharp_from_angle(angle=rad(42))
     except Exception as e:
@@ -863,8 +863,8 @@ def goku_hair(name, radii, blades, mat, col, hairline, thick, locks=(), outline=
 
 
 def goku_tube(bm, pts, r, sides=10, samples=8, flat=1.0):
-    """Ống bo tròn hai đầu chạy theo Catmull-Rom qua pts (ngón tay chibi). r: số hoặc hàm r(t), t∈[0,1].
-    Khung trực giao vận chuyển song song (không lật khi đường đổi hướng); flat<1 làm dẹt mặt cắt."""
+    """Tube with rounded ends following a Catmull-Rom through pts (chibi finger). r: number or function r(t), t∈[0,1].
+    Parallel-transport orthogonal frame (no flipping when the path changes direction); flat<1 flattens the cross-section."""
     P = [Vector(p) for p in pts]
     dense = []
     for i in range(len(P) - 1):
@@ -905,15 +905,15 @@ def goku_tube(bm, pts, r, sides=10, samples=8, flat=1.0):
 
 
 def goku_fist(side, sx, parent, col, center=(0, 0, -0.19)):
-    """Nắm đấm chibi (thay quả bóng tròn): mu bàn tay bo vuông + 4 ngón cuộn vào lòng (gờ đốt ngón ở mặt đấm,
-    các đốt giữa xếp lớp có nét mực ngăn cách ở phía lòng bàn tay) + ngón cái to ôm ngang ngón trỏ/giữa.
-    Khung tay (trong không gian khuỷu): W = về phía mặt đấm (-Z), P = lòng bàn tay hướng vào thân (-sx X),
-    U = dọc hàng đốt, ngón trỏ ở phía trước (-Y) → nhìn chính diện thấy ngón cái + lọn ngón trỏ."""
+    """Chibi fist (replaces the round ball): rounded-square back of hand + 4 fingers curled into the palm (knuckle ridges
+    on the punching face, middle phalanges layered with ink lines on the palm side) + a big thumb across index/middle fingers.
+    Hand frame (in elbow space): W = toward the punching face (-Z), P = palm facing the body (-sx X),
+    U = along the knuckle row, index finger in front (-Y) → from the front you see the thumb + the curled index finger."""
     O = Vector(center)
     U, Pv, W = Vector((0, 1, 0)), Vector((-sx, 0, 0)), Vector((0, 0, -1))
     h = lambda u, v, w: O + U * u + Pv * v + W * w
     skin = M["skin"]
-    # mu/lòng bàn tay: cầu nắn thành khối vuông bo tròn
+    # back of hand/palm: sphere squashed into a rounded block
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=24, v_segments=14, radius=1.0)
     ext = (0.047, 0.038, 0.048)
@@ -922,7 +922,7 @@ def goku_fist(side, sx, parent, col, center=(0, 0, -0.19)):
         sq = lambda x: math.copysign(abs(x) ** 0.72, x)
         uu, vv, ww = sq(q.y) * ext[0], sq(q.x) * ext[1], sq(-q.z) * ext[2]
         v.co = h(0.004 + uu, 0.0 + vv, -0.008 + ww)
-    # ụ thịt gốc ngón cái (lấp chỗ hõm giữa ngón cái và ngón trỏ khi nhìn từ phía ngón cái)
+    # fleshy thumb base (fills the dip between thumb and index finger when viewed from the thumb side)
     tmp = bmesh.new()
     bmesh.ops.create_uvsphere(tmp, u_segments=16, v_segments=10, radius=0.022)
     for v in tmp.verts:
@@ -930,14 +930,14 @@ def goku_fist(side, sx, parent, col, center=(0, 0, -0.19)):
     _merge(bm, tmp)
     ob = _obj(f"goku_fist_{side}", bm, skin, col, outline=0.0045)
     ob.parent = parent
-    # 4 ngón cuộn: từ đốt ở mu tay → vòng qua mặt đấm → ép vào lòng bàn tay
+    # 4 curled fingers: from the knuckles on the back of the hand → around the punching face → pressed into the palm
     bm = bmesh.new()
     for u, r, sh in ((-0.034, 0.0148, 0.0), (-0.011, 0.0152, 0.002), (0.012, 0.0146, 0.0), (0.033, 0.0128, -0.006)):
         path = [(-0.022, 0.03 + sh), (-0.006, 0.049 + sh), (0.02, 0.049 + sh), (0.038, 0.028 + sh), (0.04, 0.0 + sh)]
         goku_tube(bm, [h(u, v, w) for v, w in path], lambda t, r=r: r * (1.0 - 0.12 * t), sides=10)
     ob = _obj(f"goku_fingers_{side}", bm, skin, col, outline=0.003)
     ob.parent = parent
-    # ngón cái: gốc ở cạnh ngón trỏ gần cổ tay → vắt ngang trước đốt giữa ngón trỏ/giữa
+    # thumb: root beside the index finger near the wrist → laid across in front of the index/middle middle knuckles
     bm = bmesh.new()
     path = [(-0.034, 0.026, -0.034), (-0.04, 0.05, -0.006), (-0.02, 0.06, 0.01), (0.004, 0.056, 0.015)]
     goku_tube(bm, [h(*p) for p in path], lambda t: 0.0175 * (1.0 - 0.18 * t), sides=12)
@@ -947,9 +947,9 @@ def goku_fist(side, sx, parent, col, center=(0, 0, -0.19)):
 
 
 def goku_hairline(name, radii, hairline, thick, color, col, parent, off_max=104, r=0.0045):
-    """Nét mực chạy dọc chân tóc (chỗ chỏm tóc trồi lên khỏi da) từ tóc mai bên này sang bên kia.
-    Dò el mà mặt chỏm (goku_hair_shell) cắt mặt da cho từng độ lệch → nét bám đúng mép tóc ở cả 2 dạng.
-    Gắn làm con của chính mesh tóc nên rung/phồng theo tóc."""
+    """Ink line running along the hairline (where the hair cap rises off the skin) from one sideburn to the other.
+    Finds the el where the cap (goku_hair_shell) meets the skin per offset → the line hugs the hair edge in both forms.
+    Parented to the hair mesh itself so it shakes/swells with the hair."""
     def shell_off(el, off):
         hl = _hl_at(hairline, off)
         k = max(0.0, min(1.0, (el - hl + 5) / 9))
@@ -972,44 +972,44 @@ def goku_hairline(name, radii, hairline, thick, color, col, parent, off_max=104,
 
 
 def _bl(off, el, d0, d1, L, W, **kw):
-    """Spec lọn lớn theo độ lệch khỏi chính diện: off>0 lệch sang phải nhân vật (trái khung hình khi nhìn chính diện)."""
+    """Large-lock spec by offset from front: off>0 swings to the character's right (frame left when seen from the front)."""
     spec = (180 + off, el, (180 + d0[0], d0[1]), (180 + d1[0], d1[1]), L, W)
     return spec + (kw,) if kw else spec
 
 
 def goku_hair_forms(R, hc, radii, c):
-    """Tóc đen + tóc SSJ: khối lọn lớn dẹt (không phải chùm gai mảnh). Trả về (tóc, nét chân tóc) cho mỗi dạng."""
-    # ── tóc đen (Goku thường): các lọn lớn xoè ngang và hất lên, mái 5 lọn kinh điển trên trán ──
-    # v24 theo dáng Goku DBZ: cụm chóp 2 lọn dài xếp lớp vút lên rồi quét ngang sang phải nhân vật + ra sau, mỗi bên 3-4 lọn
-    # dài chĩa ngang xếp tầng (phải nhân vật hếch lên, trái hơi chúc), lọn to gốc thon dài tới ngọn nhọn (không phải gai kim nhím)
+    """Black + SSJ hair: masses of large flat locks (not a bunch of thin spikes). Returns (hair, hairline line) per form."""
+    # ── black hair (base Goku): large locks fanning sideways and flicking up, the classic 5-lock bangs on the forehead ──
+    # v24 after DBZ Goku: crown cluster of 2 long layered locks shooting up then sweeping to the character's right + back, 3-4
+    # long locks per side pointing out in tiers (right side tilted up, left drooping), big locks tapering to sharp tips (not quills)
     base = [
-        _bl(20, 74, (72, 82), (86, 46), 0.6, 0.3, twist=-15),                # lọn chóp lớn nhất
+        _bl(20, 74, (72, 82), (86, 46), 0.6, 0.3, twist=-15),                # largest crown lock
         _bl(-8, 70, (40, 80), (84, 50), 0.48, 0.26, twist=-10),
-        _bl(32, 62, (74, 64), (88, 42), 0.46, 0.25, twist=-10),                # lọn thứ 3 xếp dưới, cùng quét ngang                # lọn chóp thứ 2 nằm trước, cùng hướng
-        _bl(-36, 64, (-50, 76), (-90, 52), 0.3, 0.22),                        # chóp phụ ngả ngược lại
-        _bl(150, 66, (140, 78), (112, 56), 0.42, 0.26),                        # đỉnh sau
+        _bl(32, 62, (74, 64), (88, 42), 0.46, 0.25, twist=-10),                # 3rd lock layered below, same sweep                # 2nd crown lock in front, same direction
+        _bl(-36, 64, (-50, 76), (-90, 52), 0.3, 0.22),                        # secondary crown lock leaning the opposite way
+        _bl(150, 66, (140, 78), (112, 56), 0.42, 0.26),                        # back crown
         _bl(-150, 62, (-150, 70), (-122, 50), 0.34, 0.24),
-        _bl(55, 52, (80, 48), (96, 48), 0.46, 0.25),                           # phải nhân vật: 4 lọn dài chĩa ngang, hếch lên
+        _bl(55, 52, (80, 48), (96, 48), 0.46, 0.25),                           # character right: 4 long locks, tilted up
         _bl(78, 30, (92, 24), (98, 28), 0.44, 0.23, face=(275, 20)),
         _bl(98, 10, (106, 4), (110, 8), 0.36, 0.2, face=(285, 15)),
         _bl(120, 32, (118, 30), (114, 36), 0.38, 0.22),
-        _bl(-55, 52, (-82, 44), (-96, 40), 0.44, 0.22),                         # trái nhân vật: 4 lọn dài chĩa ngang, ngọn hơi chúc
+        _bl(-55, 52, (-82, 44), (-96, 40), 0.44, 0.22),                         # character left: 4 long locks, tips drooping slightly
         _bl(-78, 26, (-94, 14), (-100, 8), 0.44, 0.21, face=(85, 20)),
         _bl(-98, 4, (-106, -8), (-110, -12), 0.36, 0.18, face=(75, 15)),
         _bl(-120, 30, (-118, 24), (-114, 22), 0.38, 0.21),
-        _bl(180, 36, (180, 30), (180, 40), 0.34, 0.3),                         # sau: quạt
+        _bl(180, 36, (180, 30), (180, 40), 0.34, 0.3),                         # back: fan
         _bl(150, 8, (146, -4), (140, 4), 0.3, 0.24),
         _bl(-150, 8, (-146, -8), (-140, -2), 0.3, 0.24),
-        _bl(180, -26, (180, -56), (180, -40), 0.17, 0.2),                      # gáy: mép răng cưa
+        _bl(180, -26, (180, -56), (180, -40), 0.17, 0.2),                      # nape: sawtooth edge
         _bl(160, -30, (162, -60), (160, -44), 0.15, 0.17),
         _bl(-160, -30, (-162, -60), (-160, -44), 0.15, 0.17),
         _bl(140, -20, (140, -50), (138, -32), 0.13, 0.15),
         _bl(-140, -20, (-140, -50), (-138, -32), 0.13, 0.15),
     ]
-    # chân tóc trước: trán lộ ít giữa các lọn mái; sau gáy kéo xuống tận cổ
+    # front hairline: a little forehead shows between bang locks; at the back it runs down to the neck
     HL = [(0, 40), (25, 36), (50, 26), (70, 14), (86, 8), (100, 6), (115, -12), (130, -48), (150, -74), (180, -84)]
-    # mái Goku: các lọn dày rủ xuống trán tới chân mày — lọn phải nhân vật cong ra đuôi mày, lọn giữa dài rủ giữa 2 mày,
-    # lọn trái + một lọn dài ôm má trái xuống ngang mắt, 2 lọn thái dương, tóc mai nhọn trước tai
+    # Goku's bangs: thick locks over the forehead to the brows — character-right lock curls out to the brow tail, long middle lock
+    # between the brows, left lock + a long lock down the left cheek to eye level, 2 temple locks, pointed sideburns by the ears
     locks = [([(198, 58), (210, 32), (220, 4)], 0.16, 0.05, 0.012, 0.055, 14, 10, 0.016),
              ([(184, 60), (181, 32), (176, -2)], 0.16, 0.05, 0.012, 0.055, 14, 10, 0.016),
              ([(166, 58), (158, 32), (152, 4)], 0.15, 0.046, 0.012, 0.055, 14, 10, 0.014),
@@ -1019,59 +1019,59 @@ def goku_hair_forms(R, hc, radii, c):
                   ([(180 + sg * 66, 24), (180 + sg * 72, 6), (180 + sg * 76, -14)], 0.065, 0.018)]
     HL = dict(tab=HL, bangs=[(-40, 6, 10), (-14, 7, 9), (10, 8, 10), (34, 6, 10)])
     th_base = _goku_thick(0.02, 0.055, 0.006)
-    # v22 gai tam giác to bản ở gốc (lọn hình lá xếp chồng thành một cục đen to hơn cả đầu)
+    # v22 triangular spikes wide at the root (leaf-shaped locks stacked into one black mass bigger than the head)
     hair = goku_hair("goku_hair_base", radii, base, M["hair"], c, HL, th_base, locks, tri=True)
     attach(hair, R["head"], tuple(hc))
     hl_base = goku_hairline("goku_hairline_base", radii, HL, th_base, LINE_COLORS["hair"], c, hair)
-    # ── SSJ: khối lửa dựng ngược hất ra sau, lọn lớn xếp lớp toả từ đỉnh; một lọn mái rủ giữa trán ──
-    # lọn phía sau xếp thành hàng từ gáy lên đỉnh (so le như vảy): hàng dưới ngắn, ôm sát rồi vút lên, chui dưới
-    # hàng trên; hàng trên dài, xoè ra sau rồi hất lên → nhìn từ sau là các tầng ngọn lửa, không toả đều từ một tâm.
-    # root: phần gốc tô tông cam (bóng lọn trên đổ xuống), hàng càng thấp gốc tối càng dài
+    # ── SSJ: upswept flame mass flicked back, big locks fanning from the crown; one bang lock mid-forehead ──
+    # back locks in rows from nape to crown (staggered like scales): lower rows short, hugging then shooting up, tucked under
+    # the row above; upper rows long, fanning back then up → from behind, tiers of flames, not an even burst from one centre.
+    # root: root part painted orange (shadow cast by the lock above), the lower the row, the longer the dark root
     BK = dict(root=0.42)
     ssj = [
-        # chóp: 2 lọn cao nhất dựng gần thẳng đứng, nghiêng nhẹ ngược nhau (kiểu FighterZ)
+        # crown: the 2 tallest locks stand almost vertical, leaning slightly away from each other (FighterZ style)
         _bl(8, 62, (8, 76), (30, 82), 0.62, 0.25, roll=-20, twist=-25, T=0.15),
         _bl(-22, 60, (-20, 74), (-60, 80), 0.58, 0.24, roll=20, twist=25, T=0.15),
-        # đỉnh-sau: dựng sau chóp, lấp khe giữa các lọn cao khi nhìn chính diện
+        # crown-back: stands behind the crown, filling gaps between the tall locks when seen from the front
         _bl(180, 66, (180, 82), (180, 68), 0.56, 0.24, root=0.25),
         _bl(140, 60, (140, 78), (128, 66), 0.5, 0.19, root=0.25),
         _bl(-140, 60, (-140, 78), (-128, 66), 0.5, 0.19, root=0.25),
-        # trên-bên: nghiêng ra ~30° rồi vút lên
+        # upper-side: leans out ~30° then shoots up
         _bl(42, 52, (52, 50), (58, 74), 0.48, 0.23, twist=-20, root=0.18),
         _bl(-42, 52, (-52, 50), (-58, 74), 0.46, 0.23, twist=20, root=0.18),
-        # thái dương: chĩa ra ~45°, ngọn cong lên
+        # temples: point out ~45°, tips curling up
         _bl(76, 38, (86, 28), (88, 66), 0.44, 0.22, face=(265, 30), root=0.22),
         _bl(-76, 38, (-86, 28), (-88, 66), 0.42, 0.22, face=(95, 30), root=0.22),
-        # trên tai: chĩa ngang ra, hếch nhẹ
+        # above the ears: point sideways, tilted up slightly
         _bl(100, 16, (102, 6), (102, 42), 0.36, 0.17, face=(275, 25), root=0.25),
         _bl(-100, 16, (-102, 6), (-102, 42), 0.36, 0.17, face=(85, 25), root=0.25),
         _bl(112, -2, (114, -8), (114, 10), 0.24, 0.13, root=0.3),
         _bl(-112, -2, (-114, -8), (-114, 10), 0.24, 0.13, root=0.3),
-        # sau: 2 hàng lọn dài chĩa ra sau rồi hất lên (không ôm sát đầu thành cánh hoa)
+        # back: 2 rows of long locks pointing back then flicking up (not hugging the head like petals)
         _bl(160, 42, (162, 50), (156, 72), 0.52, 0.24, twist=12, **BK),
         _bl(-160, 42, (-162, 50), (-156, 72), 0.52, 0.24, twist=-12, **BK),
         _bl(124, 34, (124, 44), (114, 68), 0.44, 0.22, **BK),
         _bl(-124, 34, (-124, 44), (-114, 68), 0.44, 0.22, **BK),
-        # v20 nửa dưới gáy: 1 lọn giữa bản to rủ xuống gáy + 2 lọn xoè chéo vút lên hai bên (trước 4 lọn nhỏ xếp tâm → nhìn từ sau như
-        # quả thông / bông atiso)
+        # v20 lower nape: 1 wide middle lock down the nape + 2 locks fanning up diagonally (before: 4 small radial locks → from behind like a
+        # pine cone / artichoke)
         _bl(180, 8, (180, -28), (180, -8), 0.36, 0.27, **BK),
         _bl(145, 8, (140, 24), (126, 58), 0.42, 0.21, **BK),
         _bl(-145, 8, (-140, 24), (-126, 58), 0.42, 0.21, **BK),
-        # gáy: chĩa xuống, ngọn hất ra
+        # nape: pointing down, tips flicked out
         _bl(180, -34, (180, -70), (180, -30), 0.2, 0.17, root=0.5),
         _bl(158, -30, (160, -55), (160, -15), 0.15, 0.14, root=0.5),
         _bl(-158, -30, (-160, -55), (-160, -15), 0.15, 0.14, root=0.5),
-        # lớp trước ngay trên trán: lọn ngắn hơn đứng trước 2 lọn chóp
+        # front layer just above the forehead: shorter locks standing in front of the 2 crown locks
         _bl(20, 48, (26, 72), (36, 78), 0.42, 0.21),
         _bl(-16, 48, (-22, 72), (-34, 76), 0.4, 0.21),
     ]
     HL_SSJ = [(0, 34), (25, 30), (50, 20), (70, 11), (86, 8), (100, 6), (115, -12), (130, -48), (150, -74), (180, -84)]
-    # mái: lọn đặc trưng rủ giữa trán (giữa 2 lông mày) + 2 lọn ngắn + 2 lọn ôm thái dương + tóc mai trước tai
+    # bangs: signature lock mid-forehead (between the brows) + 2 short locks + 2 temple-hugging locks + sideburns by the ears
     locks_ssj = [([(176, 64), (184, 46), (196, 26), (200, 4)], 0.22, 0.042, 0.012, 0.065, 18, 10, 0.03),
                  ([(166, 60), (156, 40), (146, 22), (141, 4)], 0.18, 0.036, 0.012, 0.055, 16, 10, 0.02)]
     for sg in (1, -1):
         locks_ssj += [([(180 + sg * 38, 46), (180 + sg * 48, 28), (180 + sg * 56, 12)], 0.1, 0.022),
-                      ([(180 + sg * 64, 26), (180 + sg * 72, 6), (180 + sg * 77, -16)], 0.085, 0.022)]   # tóc mai SSJ rõ hơn trước tai
+                      ([(180 + sg * 64, 26), (180 + sg * 72, 6), (180 + sg * 77, -16)], 0.085, 0.022)]   # SSJ sideburns more visible by the ears
     HL_SSJ = dict(tab=HL_SSJ, bangs=[(-52, 10, 10), (-30, 14, 11), (-8, 10, 9), (14, 16, 11), (38, 12, 10), (58, 9, 9)])
     th_ssj = _goku_thick(0.02, 0.05, 0.008)
     hair_ssj = goku_hair("goku_hair_ssj", radii, ssj, M["hair_ssj"], c, HL_SSJ, th_ssj, locks_ssj, sweep=0.22)
@@ -1086,46 +1086,46 @@ def _smooth(e0, e1, x):
 
 
 def goku_face_warp(co, radii):
-    """Nắn đầu cầu thành mặt anime chibi (local quanh tâm đầu, mặt nhìn -Y): má bầu ngay dưới mắt, hàm thon
-    dần về một cằm nhỏ mềm hơi nhô trước-dưới, gầm hàm nâng lên (lộ cổ, nhìn nghiêng thấy đường hàm).
-    Chỉ chạm nửa dưới phía trước (el < ~-8°, không chạm gáy): đỉnh/sau đầu giữ đúng elip để tóc vẫn ôm khít.
-    Dùng chung cho mesh đầu và phần vỏ tóc chìm dưới da (goku_hair_shell) để vỏ tóc không lòi ra dưới hàm."""
+    """Shapes the head sphere into a chibi anime face (local to head centre, facing -Y): chubby cheeks just under the eyes,
+    jaw tapering to a small soft chin jutting slightly forward-down, underjaw raised (neck shows, jawline visible in profile).
+    Only affects the lower front half (el < ~-8°, not the nape): crown/back stays a true ellipsoid so the hair still fits.
+    Shared by the head mesh and the under-skin hair shell (goku_hair_shell) so the shell doesn't poke out under the jaw."""
     a, b, c = radii
     u = Vector((co.x / a, co.y / b, co.z / c))
     if u.length < 1e-6:
         return Vector(co)
     u.normalize()
-    keep_back = _smooth(0.6, 0.15, u.y)                    # 0 ở gáy (tóc phủ) → 1 ở nửa trước
-    lower = _smooth(-0.14, -0.95, u.z) * keep_back           # 0 trên tầm mắt → 1 ở đáy đầu
-    front = _smooth(0.3, -0.7, u.y)                          # 1 ở mặt trước
+    keep_back = _smooth(0.6, 0.15, u.y)                    # 0 at the nape (hair-covered) → 1 at the front half
+    lower = _smooth(-0.14, -0.95, u.z) * keep_back           # 0 above eye level → 1 at the bottom of the head
+    front = _smooth(0.3, -0.7, u.y)                          # 1 at the front of the face
     p = Vector(co)
-    # hàm thon: bóp ngang nửa dưới, mạnh ở phía trước (cằm nhỏ), nhẹ dần về mang tai
+    # tapered jaw: pinch the lower half sideways, strongest at the front (small chin), easing off toward the ears
     p.x *= 1 - 0.2 * lower ** 1.25 * (0.3 + 0.7 * front)
-    # má bầu: phồng nhẹ ra ngoài ở hai bên mặt, ngay dưới mắt
+    # chubby cheeks: bulge slightly outward on both sides of the face, just under the eyes
     for sx in (-1, 1):
         dch = Vector((sx * 0.62, -0.62, -0.48)).normalized()
         w = math.exp(-((u - dch).length / 0.4) ** 2)
         p += Vector((u.x * a, u.y * b * 0.6, u.z * c * 0.4)).normalized() * 0.01 * w
-    # cằm mềm: kéo nhẹ ra trước-dưới
+    # soft chin: pull slightly forward-down
     wc = math.exp(-((u - Vector((0, -0.6, -0.8))).length / 0.36) ** 2)
     p += Vector((0, -0.45, -0.55)).normalized() * 0.013 * wc
-    # gầm hàm: nâng phần đáy (trừ chóp cằm) để cằm thành mỏm và lộ cổ
+    # underjaw: raise the bottom (except the chin tip) so the chin becomes a point and the neck shows
     under = _smooth(-0.5, -0.98, u.z) * _smooth(-0.85, -0.25, u.y) * keep_back
     p.z += 0.024 * under
-    p.y += 0.01 * under * _smooth(-0.6, 0.0, u.y)            # gầm hàm lùi về sau một chút
+    p.y += 0.01 * under * _smooth(-0.6, 0.0, u.y)            # underjaw pushed back a little
     return p
 
 
 def goku_face_shape(ob, radii):
-    """Áp goku_face_warp lên mọi đỉnh của một mesh dựng quanh tâm đầu (đầu, vỏ tóc, nét chân tóc)."""
+    """Applies goku_face_warp to every vertex of a mesh built around the head centre (head, hair shell, hairline line)."""
     for v in ob.data.vertices:
         v.co = goku_face_warp(v.co, radii)
     ob.data.update()
 
 
 def goku_snap_decals(head, decals, radii):
-    """face_decal() dựng miếng dán ôm theo elip `radii`; sau khi nắn đầu (goku_face_shape) chiếu lại từng đỉnh
-    theo tia từ tâm đầu lên mesh thật, giữ nguyên độ nổi (lớp) của nó: không lơ lửng, không chìm/nhấp nháy."""
+    """face_decal() builds a decal hugging ellipsoid `radii`; after reshaping the head (goku_face_shape), reproject each vertex
+    along a ray from the head centre onto the real mesh, keeping its offset (layer): no floating, no sinking/flickering."""
     from mathutils.bvhtree import BVHTree
     me = head.data
     bvh = BVHTree.FromPolygons([v.co for v in me.vertices], [tuple(p.vertices) for p in me.polygons])
@@ -1145,31 +1145,31 @@ def goku_snap_decals(head, decals, radii):
 
 
 GOKU_DIM = dict(hips=0.545, chest=0.08, neck=0.33, sh_x=0.17, sh_z=0.25, upper=0.2, hip_x=0.085, thigh=0.25)
-LEG_DROP = 0.115                                 # v9 chân Goku ngắn đi: nâng root ở đòn kết liễu để nắm đấm vẫn trúng mặt
+LEG_DROP = 0.115                                 # v9 shorter legs: raise root in the finisher so the fist still hits the face
 FRIEZA_DIM = dict(hips=0.56, chest=0.06, neck=0.27, sh_x=0.15, sh_z=0.2, upper=0.17, hip_x=0.07, thigh=0.21)
-FR_FOOT_Z = -0.205                               # v16 chân Frieza ngắn chibi: đùi 0.26→0.21, cẳng 0.235→0.205 (hông giữ nguyên:
-                                                 # thân/đầu/anchor không đổi chỗ; Frieza luôn bay nên bàn chân không cần chạm đất)
+FR_FOOT_Z = -0.205                               # v16 short chibi Frieza legs: thigh 0.26→0.21, shin 0.235→0.205 (hips kept:
+                                                 # torso/head/anchor stay put; Frieza always flies, feet never need to touch the ground)
 
 
 def build_goku():
     c, R_ = C_GOKU, 0.2
     R = build_rig("GOKU", c, GOKU_DIM)
-    hc = Vector((0, 0, R_ * 0.86))                      # tâm đầu, tính từ khớp cổ
-    # thân: võ phục cam, cổ chữ V lộ áo xanh, đai xanh, chữ 悟 trên ngực
+    hc = Vector((0, 0, R_ * 0.86))                      # head centre, measured from the neck joint
+    # torso: orange gi, V-neck showing the blue undershirt, blue belt, 悟 kanji on the chest
     attach(sphere("goku_pelvis", 1, M["gi"], c, (0.14, 0.11, 0.1)), R["hips"], (0, 0, 0.0))
     torso = attach(tcap("goku_torso", 0.135, 0.112, 0.1, M["gi"], c, (1.1, 0.85, 1)), R["chest"], (0, 0, 0.12))
-    for v in torso.data.vertices:                       # vai xuôi: hạ đỉnh ngực 0.305 → 0.28 để lộ một đoạn cổ ngắn
+    for v in torso.data.vertices:                       # sloped shoulders: chest top 0.305 → 0.28 to show a bit of neck
         if v.co.z > 0.05:
             v.co.z = 0.05 + (v.co.z - 0.05) * 0.8
-    # cổ chữ V sâu lộ áo xanh + ve áo: dán ôm ngực trong extras/goku_outfit.py; ở đây chỉ cổ áo xanh ôm quanh chân cổ
+    # deep V-neck + lapels showing the blue undershirt: in extras/goku_outfit.py; here only the blue collar at the neck base
     attach(torus("goku_undershirt", 0.05, 0.0095, M["blue"], c, seg=24, ring=8, scale=(1.08, 1.0, 1), outline=0.003),
            R["chest"], (0, 0.002, 0.27), (6, 0, 0))
-    # đai vải xanh bản to (kiểu sash), mép trên bo vào bụng; 2 đuôi đai dẹt rủ từ nút thắt
+    # wide blue cloth belt (sash style), top edge curving into the belly; 2 flat belt tails hanging from the knot
     sash = [(0.096, 0.0), (0.096, 0.112), (0.094, 0.13), (0.088, 0.138), (0.07, 0.141), (0.05, 0.143),
             (0.032, 0.146), (0.024, 0.145), (0.019, 0.134), (0.017, 0.0)]
     attach(lathe("goku_belt", sash, M["blue"], c, seg=40, scale=(1.0, 0.8, 1),
                  rfn=lambda t, z, r: r * (1 + 0.035 * max(0.0, math.cos(3 * t + 0.6 + z * 30)) ** 3)), R["hips"], (0, 0, 0.0))
-    # nút thắt + 2 đuôi đai là dải vải dẹt loe dần, rủ chéo (v19: 1 viên thuốc tròn nhìn như cái thìa)
+    # knot + 2 belt tails are flat flaring cloth strips hanging diagonally (v19: 1 round capsule looked like a spoon)
     attach(sphere("goku_belt_knot", 1, M["blue"], c, (0.026, 0.014, 0.021), seg=20, outline=0.003),
            R["hips"], (0.052, -0.124, 0.03), (0, 18, 0))
     for i, pts in enumerate(([(0.046, -0.126, 0.026), (0.038, -0.131, -0.025), (0.031, -0.132, -0.075), (0.028, -0.129, -0.112)],
@@ -1189,21 +1189,21 @@ def build_goku():
         c.objects.link(k)
         fc.materials.append(M["ink"])
         attach(k, R["chest"], (0.0816, -0.0876, 0.119), (98, 0, 30))
-    except Exception as e:  # thiếu font thì bỏ qua chữ
+    except Exception as e:  # skip the kanji if the font is missing
         print("KANJI skipped", e)
-    # cổ ngắn lộ giữa cằm và cổ áo (chân cổ chìm trong ngực, đỉnh chìm trong đầu)
+    # short neck showing between chin and collar (neck base sunk in the chest, top sunk in the head)
     neck = attach(cyl("goku_neck", 0.053, 0.048, 0.13, M["skin"], c, seg=20), R["chest"], (0, 0, 0.295))
-    # đầu to kiểu chibi: má bầu, cằm nhỏ; mặt vẽ sẵn (face_textures.py) dán ôm theo elip của đầu
+    # big chibi head: chubby cheeks, small chin; pre-painted face (face_textures.py) decal hugging the head ellipsoid
     HS = (1.06, 0.97, 0.93)
     radii = tuple(R_ * k for k in HS)
     head = attach(sphere("goku_head", R_, M["skin"], c, HS, seg=56, outline=0.007), R["head"], tuple(hc))
     goku_face_shape(head, radii)
-    # da mặt riêng: dải sáng rất nhẹ (dải sáng gắt của "skin" in thành một hình oval nhạt quanh miệng như mõm chó)
-    face_skin = toon("goku_skin_face", "#FAD3AE", "#F2BE9C", "#FAD3AE")   # bóng mặt dịu: nhìn từ dưới lên bóng cằm không thành mảng loang
+    # own face skin: very soft highlight band ("skin"'s hard band printed a faint oval around the mouth like a dog's muzzle)
+    face_skin = toon("goku_skin_face", "#FAD3AE", "#F2BE9C", "#FAD3AE")   # soft face shadow: from below, the chin shadow doesn't blotch
     head.material_slots[0].material = face_skin
-    # v30 cổ tông bóng như anime (cằm đổ bóng xuống cổ): trước cùng màu mặt → cổ sáng như khúc gỗ dưới cằm
+    # v30 neck in shadow tone like anime (chin shadow): before, same colour as the face → neck lit like a log under the chin
     neck.material_slots[0].material = toon("goku_neck_skin", "#EFBC98", "#E3A985", "#EFBC98")
-    # tai chibi nhỏ, tròn, lộ ra dưới tóc mai ở ngang tầm mắt, hơi xoay về trước; lõm tai tông da tối
+    # small round chibi ears, showing under the sideburns at eye level, turned slightly forward; inner ear in dark skin tone
     ear_in = toon("goku_ear_in", "#E9A684", "#D88E6E")
     for side, sx in (("R", -1), ("L", 1)):
         p, n = _ell_surf(radii, head_dir(180 - sx * 90 + sx * 8, -13))
@@ -1237,12 +1237,12 @@ def build_goku():
         brows_base.append(face_decal(f"goku_brow_{side}", R["head"], hc, radii, 180 + sgn * 25, 14, 0.09, 0.045, T[f"goku_brow_{side}"], c, 2, roll=sgn * 8))
         brows_ssj.append(face_decal(f"goku_brow_ssj_{side}", R["head"], hc, radii, 180 + sgn * 24, 5, 0.09, 0.06, T[f"goku_brow_ssj_{side}"], c, 2, roll=sgn * 4))
         blush.append(face_decal(f"goku_blush_{side}", R["head"], hc, radii, 180 + sgn * 44, -32, 0.07, 0.042, T["blush"], c, 0))
-    # miệng to hơn một chút để đọc được ở cỡ khung truyện (key ẩn/hiện giữ nguyên tên)
+    # mouth a bit bigger to read at comic-panel size (show/hide key names unchanged)
     smirk = face_decal("goku_mouth_smirk", R["head"], hc, radii, 180, -40, 0.09, 0.056, tex_mat("tx_goku_mouth_smirk", "goku_mouth_smirk.png"), c, 0)
     mouth = face_decal("goku_mouth", R["head"], hc, radii, 180, -40, 0.09, 0.056, T["goku_mouth"], c, 0)
     mouth_open = face_decal("goku_mouth_open", R["head"], hc, radii, 180, -42, 0.094, 0.098, T["goku_mouth_open"], c, 0)
     grit = face_decal("goku_mouth_grit", R["head"], hc, radii, 180, -40, 0.1, 0.06, T["goku_mouth_grit"], c, 0)
-    # mũi anime: nét bóng nhỏ (decal) + một mỏm da rất nhỏ để nhìn 3/4, nghiêng thấy sống mũi
+    # anime nose: small shadow stroke (decal) + a tiny skin bump so the bridge shows in 3/4 and profile
     nose = face_decal("goku_nose", R["head"], hc, radii, 180 + 3, -27, 0.04, 0.04, T["goku_nose"], c, 0)
     goku_snap_decals(head, ey["base"] + ey["ssj"] + ey["shut"] + ey["angry"] + ey["blink"] + ey["fierce"] + brows_base + brows_ssj
                      + brows_angry + blush + [smirk, mouth, mouth_open, grit, nose], radii)
@@ -1252,16 +1252,16 @@ def build_goku():
     nose_tip = attach(sphere("goku_nose_tip", 1, face_skin, c, (0.0075, 0.009, 0.0085), seg=16, outline=0),
                       R["head"], tuple(hc + tip - tn * 0.0045), (-30, 0, 0))
     nose_tip.visible_shadow = False
-    # bóng cằm hắt xuống cổ (cel): dải da tối quanh đỉnh cổ, mép dưới võng chữ U ở phía trước
+    # chin shadow cast onto the neck (cel): dark skin band around the top of the neck, lower edge dipping in a U at the front
     neck_sh_m = bpy.data.materials.get("goku_neck_shadow") or toon("goku_neck_shadow", "#E7A383", "#D48F72", "#E7A383")
     bm = bmesh.new()
     rows = []
     for j, t in enumerate((0.0, 1.0)):
         row = []
         for i in range(24):
-            ang = math.tau * i / 24                            # ang=0: phía trước (-Y)
+            ang = math.tau * i / 24                            # ang=0: front (-Y)
             front_w = max(0.0, math.cos(ang))
-            z = 0.355 if t > 0.5 else 0.34 - 0.034 * front_w ** 1.6     # chữ U sâu rõ ở trước (mép thẳng như dán băng)
+            z = 0.355 if t > 0.5 else 0.34 - 0.034 * front_w ** 1.6     # deep U at the front (a straight edge looked like tape)
             r = 0.053 - 0.005 * (z - 0.23) / 0.13 + 0.0009
             row.append(bm.verts.new((r * math.sin(ang), -r * math.cos(ang), z)))
         rows.append(row)
@@ -1271,13 +1271,13 @@ def build_goku():
     neck_sh = attach(_obj("goku_neck_shadow", bm, neck_sh_m, c, outline=0), R["chest"], (0, 0, 0))
     neck_sh.visible_shadow = False
     hair, hl_base, hair_ssj, hl_ssj = goku_hair_forms(R, hc, radii, c)
-    for ob in (o for o in (hair, hl_base, hair_ssj, hl_ssj) if o):   # vỏ tóc chìm dưới da đi theo hàm thon (không lòi ra như râu)
+    for ob in (o for o in (hair, hl_base, hair_ssj, hl_ssj) if o):   # under-skin hair shell follows the tapered jaw (no beard poking out)
         goku_face_shape(ob, radii)
-    # tay chân bo tròn
+    # rounded limbs
     for side, sx in (("R", -1), ("L", 1)):
         attach(tcap(f"goku_sleeve_{side}", 0.06, 0.055, 0.045, M["blue"], c), R[f"sh_{side}"], (sx * 0.004, 0, -0.035))
-        # bắp tay có cơ (v19: viên thuốc thẳng như tay ma-nơ-canh): bắp tay trước nhô dưới tay áo, cơ tam đầu sau,
-        # cẳng tay phình gần khuỷu rồi thon vào cổ tay — tay chắc kiểu Goku FighterZ
+        # muscular arms (v19: a straight capsule like a mannequin arm): biceps bulging under the sleeve, triceps behind,
+        # forearm swelling near the elbow then tapering to the wrist — sturdy arms like FighterZ Goku
         L = GOKU_DIM["upper"]
         def arm_rfn(t, z, r, w, sx=sx):
             fr_, bk, out = max(0.0, -math.sin(t)), max(0.0, math.sin(t)), max(0.0, -sx * math.cos(t))
@@ -1285,7 +1285,7 @@ def build_goku():
                   + 0.07 * bk ** 1.5 * math.exp(-((z + 0.1) / 0.04) ** 2))
             lo = 0.1 * out ** 1.5 * math.exp(-((z + L + 0.035) / 0.035) ** 2)
             return r * (1 + up * (1 - w) + lo * w)
-        # v22 cả cánh tay liền một khối bẻ ở khuỷu (skin_limb) thay 2 khúc rời
+        # v22 whole arm as one piece bending at the elbow (skin_limb) instead of 2 separate segments
         skin_limb(f"goku_arm_{side}", [(0.0, 0.0), (-0.005, 0.035), (-0.03, 0.046), (-0.07, 0.049), (-0.11, 0.051),
                                        (-0.14, 0.05), (-0.165, 0.046), (-0.185, 0.044), (-L, 0.045), (-L - 0.02, 0.049),
                                        (-L - 0.04, 0.052), (-L - 0.065, 0.05), (-L - 0.09, 0.045), (-L - 0.115, 0.041),
@@ -1293,9 +1293,9 @@ def build_goku():
                   R[f"sh_{side}"], R[f"el_{side}"], M["skin"], c, seg=28, rfn=arm_rfn)
         attach(cyl(f"goku_wrist_{side}", 0.046, 0.046, 0.05, M["blue"], c), R[f"el_{side}"], (0, 0, -0.13))
         goku_fist(side, sx, R[f"el_{side}"], c)
-        # chân chibi ngắn mập: quần võ cam ống rộng phồng dần xuống gối rồi dồn túm trên cổ giày (nếp vải dồn),
-        # giày xanh navy cổ cao (sọc đỏ + dây buộc vàng ở extras/goku_outfit.py)
-        squash = lambda t, sx=sx: 1 - 0.13 * max(0.0, -sx * math.cos(t)) ** 1.5      # ép mặt trong: 2 ống không lẹm nhau
+        # stubby chibi legs: wide orange gi trousers ballooning to the knee then bunching above the boot tops (bunched folds),
+        # high navy-blue boots (red stripe + yellow laces in extras/goku_outfit.py)
+        squash = lambda t, sx=sx: 1 - 0.13 * max(0.0, -sx * math.cos(t)) ** 1.5      # flatten inner side: legs don't intersect
         attach(lathe(f"goku_thigh_{side}", [(0.07, 0.0), (0.07, 0.042), (0.056, 0.074), (0.03, 0.09), (0.0, 0.094),
                                             (-0.06, 0.097), (-0.12, 0.098), (-0.18, 0.096), (-0.23, 0.09), (-0.265, 0.078),
                                             (-0.285, 0.055), (-0.292, 0.0)], M["gi"], c,
@@ -1303,7 +1303,7 @@ def build_goku():
                                                                          * math.cos(4 * t + sx * 1.1 + z * 9) ** 2)),
                R[f"hip_{side}"], (0, 0, 0))
         attach(sphere(f"goku_knee_{side}", 0.082, M["gi"], c), R[f"kn_{side}"], (0, 0, 0.0))
-        bunch = lambda z: max(0.0, 1 - abs(z + 0.072) / 0.04)                      # nếp dồn mạnh nhất ngay trên giày
+        bunch = lambda z: max(0.0, 1 - abs(z + 0.072) / 0.04)                      # bunching strongest just above the boot
         attach(lathe(f"goku_shinpant_{side}", [(0.06, 0.0), (0.06, 0.05), (0.04, 0.08), (0.0, 0.092), (-0.03, 0.1),
                                                (-0.055, 0.104), (-0.075, 0.1), (-0.09, 0.087), (-0.1, 0.07),
                                                (-0.106, 0.055), (-0.109, 0.04), (-0.111, 0.0)], M["gi"], c, seg=40,
@@ -1329,20 +1329,20 @@ def build_goku():
 
 
 def fr_finger_bm(sx, base, length, r, curl, spread=0.0, seg=12, rings=8):
-    """Ngón tay chibi tròn: ống bo hai đầu theo trục -Z, uốn cong `curl` độ về phía lòng bàn tay (+X ở tay phải,
-    sx=-1), xoè `spread` độ quanh pháp tuyến lòng bàn tay. Trả về bmesh trong hệ toạ độ của khuỷu tay."""
-    n, down, side = Vector((-sx, 0, 0)), Vector((0, 0, -1)), Vector((0, 1, 0))   # n: hướng lòng bàn tay
+    """Round chibi finger: tube with rounded ends along -Z, curled `curl` degrees toward the palm (+X on the right hand,
+    sx=-1), spread `spread` degrees around the palm normal. Returns a bmesh in the elbow's coordinate space."""
+    n, down, side = Vector((-sx, 0, 0)), Vector((0, 0, -1)), Vector((0, 1, 0))   # n: palm direction
     phi = max(rad(curl), 1e-4)
     rho = length / phi
     q = Quaternion(n, rad(spread))
 
-    def frame(s_):                                   # tâm + 2 trục ngang tại toạ độ dọc ngón s_ (kéo thẳng ở 2 đầu)
+    def frame(s_):                                   # centre + 2 cross axes at s_ along the finger (straightened at both ends)
         a = min(max(s_, 0.0), length) / rho
         C = n * rho * (1 - math.cos(a)) + down * rho * math.sin(a)
         T = n * math.sin(a) + down * math.cos(a)
         N = n * math.cos(a) - down * math.sin(a)
         return C + T * (s_ - length if s_ > length else min(s_, 0.0)), N
-    prof = [(-r * math.cos(t), r * math.sin(t)) for t in (math.pi / 2 * k / 4 for k in range(1, 4))]   # nắp đầu
+    prof = [(-r * math.cos(t), r * math.sin(t)) for t in (math.pi / 2 * k / 4 for k in range(1, 4))]   # end cap
     prof += [(length * k / rings, r) for k in range(rings + 1)]
     prof += [(length + r * math.sin(t), r * math.cos(t)) for t in (math.pi / 2 * k / 4 for k in range(1, 4))]
     bm = bmesh.new()
@@ -1363,7 +1363,7 @@ def fr_finger_bm(sx, base, length, r, curl, spread=0.0, seg=12, rings=8):
     return bm
 
 
-FR_HEAD_R, FR_HEAD_HS = 0.18, (0.95, 0.94, 1.03)   # v22 hẹp ngang chút: đầu thuôn như quả trứng, không tròn như quả bóng
+FR_HEAD_R, FR_HEAD_HS = 0.18, (0.95, 0.94, 1.03)   # v22 slightly narrower: egg-shaped head, not round like a ball
 
 
 def _fr_sstep(e0, e1, x):
@@ -1372,25 +1372,25 @@ def _fr_sstep(e0, e1, x):
 
 
 def fr_head_surf(d):
-    """Đầu Frieza final form (local quanh tâm đầu hc): elip gốc, sọ tròn giữ nguyên dưới vòm tím; nửa dưới mặt
-    thon dần về hai bên má tới cằm nhỏ mềm, gò má nhô rất nhẹ. Hàm bán kính theo hướng nên decal/vòm ôm theo được."""
+    """Final-form Frieza head (local to head centre hc): base ellipsoid, round skull kept under the purple dome; lower face
+    tapers along the cheeks to a small soft chin, very subtle cheekbones. Radius depends on direction so decals/dome can follow."""
     d = Vector(d).normalized()
     a, b, c = (FR_HEAD_R * k for k in FR_HEAD_HS)
     r = 1.0 / math.sqrt((d.x / a) ** 2 + (d.y / b) ** 2 + (d.z / c) ** 2)
-    low = _fr_sstep(-0.18, -0.9, d.z)                    # 0 từ tầm mắt trở lên → 1 dưới cằm
-    side = d.x * d.x / (d.x * d.x + d.y * d.y + 0.04)    # 1 ngang hai bên, 0 trước/sau (ổn định ở cực dưới)
+    low = _fr_sstep(-0.18, -0.9, d.z)                    # 0 from eye level up → 1 below the chin
+    side = d.x * d.x / (d.x * d.x + d.y * d.y + 0.04)    # 1 at both sides, 0 front/back (stable at the bottom pole)
     front = max(0.0, -d.y) / math.sqrt(d.x * d.x + d.y * d.y + 1e-6)
-    k = 1.0 - low * (0.085 * side + 0.015)              # quai hàm thon (0.1 cằm nhọn như bóng đèn, 0.065 mặt bánh bao)
-    k += 0.022 * low * front ** 6 * _fr_sstep(-0.35, -0.7, d.z) * (1 - _fr_sstep(-0.8, -0.97, d.z))   # cằm nhỏ mềm
-    for sgn in (1, -1):                                  # gò má rất nhẹ, ngoài-dưới mắt
+    k = 1.0 - low * (0.085 * side + 0.015)              # tapered jaw (0.1 gave a pointy lightbulb chin, 0.065 a bun face)
+    k += 0.022 * low * front ** 6 * _fr_sstep(-0.35, -0.7, d.z) * (1 - _fr_sstep(-0.8, -0.97, d.z))   # small soft chin
+    for sgn in (1, -1):                                  # very subtle cheekbones, outside-below the eyes
         g = head_dir(180 + sgn * 46, -14)
         k += 0.012 * math.exp(-(1 - d.dot(g)) / 0.018)
-    k += 0.012 * _fr_sstep(0.2, 0.9, d.z) * max(0.0, d.y) # sọ sau hơi đầy (dưới vòm)
+    k += 0.012 * _fr_sstep(0.2, 0.9, d.z) * max(0.0, d.y) # back of the skull slightly fuller (under the dome)
     return d * (r * k)
 
 
 def fr_head_frame(d, surf=None):
-    """Điểm trên mặt đầu theo hướng d + pháp tuyến (sai phân hữu hạn trên hàm bề mặt)."""
+    """Point on the head surface along direction d + normal (finite differences on the surface function)."""
     surf = surf or fr_head_surf
     d = Vector(d).normalized()
     t1 = d.cross(Vector((0, 0, 1)))
@@ -1407,7 +1407,7 @@ FR_DOME_RD = 1.048
 
 
 def fr_face_decal(name, parent, center, az, el, w, h, mat, col, layer=0, roll=0.0, grid=10, surf=None, lift=0.0):
-    """Như face_decal nhưng ôm theo bề mặt đầu Frieza (fr_head_surf), không phải elip."""
+    """Like face_decal but hugging the Frieza head surface (fr_head_surf), not an ellipsoid."""
     p0, n0 = fr_head_frame(head_dir(az, el), surf)
     up = (Vector((0, 0, 1)) - n0 * n0.z).normalized()
     right = n0.cross(up).normalized()
@@ -1437,7 +1437,7 @@ def fr_face_decal(name, parent, center, az, el, w, h, mat, col, layer=0, roll=0.
 
 
 def _fr_spline(prof, n=6):
-    """Làm mượt biên dạng [(z, r)] bằng Catmull-Rom (n điểm mỗi đoạn) để khối tròn xoay không gãy khúc."""
+    """Smooths a profile [(z, r)] with Catmull-Rom (n points per segment) so solids of revolution have no kinks."""
     P = [prof[0]] + list(prof) + [prof[-1]]
     out = []
     for i in range(1, len(P) - 2):
@@ -1451,7 +1451,7 @@ def _fr_spline(prof, n=6):
 
 
 def fr_body(name, prof, mat, col, parent, origin=(0, 0, 0), sy=1.0, rfn=None, seg=32, outline=0.005):
-    """Khối tròn xoay mượt cho thân/tay/chân Frieza; `prof` theo toạ độ khớp cha, gốc vật đặt ở `origin`."""
+    """Smooth solid of revolution for Frieza's torso/limbs; `prof` in parent-joint coordinates, object origin at `origin`."""
     oz = origin[2]
     pr = [(z - oz, r) for z, r in _fr_spline(prof)]
     f = (lambda t, z, r: rfn(t, z + oz, r)) if rfn else None
@@ -1467,10 +1467,10 @@ def build_frieza():
     R = build_rig("FRIEZA", c, FRIEZA_DIM)
     W_, P = M["f_white"], M["f_purple"]
     hc = Vector((0, 0, R_ * 0.92))
-    # v22 dáng chữ V: ngực/vai nở, eo + hông thon, đùi gọn (v19–v21 hông + đùi rộng hơn ngực như cái bình)
-    # v17 dáng final form thon gọn (trước: thân hình quả lê, hông/đùi phình): ngực nở có cơ ngực, eo thắt,
-    # hông gọn, đùi thon dần vào giáp ống chân. Khối tròn xoay mượt (fr_body) thay cho cầu/viên thuốc.
-    def torso_rfn(t, z, r):                      # mặt cắt: cơ ngực nhô trước, lưng phẳng hơn
+    # v22 V-shape: broad chest/shoulders, slim waist + hips, trim thighs (v19–v21 hips + thighs wider than chest, vase-like)
+    # v17 slim final-form build (before: pear-shaped body, bulging hips/thighs): broad chest with pecs, cinched waist,
+    # trim hips, thighs tapering into the shin armour. Smooth solids of revolution (fr_body) replace spheres/capsules.
+    def torso_rfn(t, z, r):                      # cross-section: pecs bulge forward, flatter back
         fr_, cs = max(0.0, -math.sin(t)), abs(math.cos(t))
         pec = _fr_bump(z, 0.152, 0.03) * _fr_bump(cs, 0.5, 0.26) * fr_ ** 1.5
         back = max(0.0, math.sin(t)) * _fr_bump(z, 0.13, 0.06)
@@ -1479,38 +1479,38 @@ def build_frieza():
                                 (0.2, 0.156), (0.17, 0.157), (0.14, 0.145), (0.11, 0.124), (0.08, 0.102), (0.05, 0.088),
                                 (0.02, 0.08), (-0.01, 0.076), (-0.035, 0.068), (-0.055, 0.045), (-0.062, 0.008)],
                    W_, c, R["chest"], sy=0.74, rfn=torso_rfn), R["chest"], (0, 0, 0))
-    def pelvis_rfn(t, z, r):                     # mông nhỉnh ra sau, bụng dưới phẳng
+    def pelvis_rfn(t, z, r):                     # slightly fuller rear, flat lower belly
         return r * (1 + 0.06 * max(0.0, math.sin(t)) * _fr_bump(z, -0.045, 0.03) - 0.03 * max(0.0, -math.sin(t)))
-    # v22 hông thon ở eo, đáy tròn xuống ôm gốc đùi (hết gờ như quần đùi)
+    # v22 hips slim at the waist, round bottom wrapping the thigh roots (no more boxer-shorts ridge)
     fr_body("fr_pelvis", [(0.066, 0.008), (0.062, 0.034), (0.045, 0.058), (0.022, 0.068), (-0.008, 0.078), (-0.04, 0.083),
                           (-0.066, 0.076), (-0.09, 0.064), (-0.106, 0.036), (-0.112, 0.008)],
             W_, c, R["hips"], sy=0.8, rfn=pelvis_rfn)
     gy = -0.131 * 0.74 * (1 + 0.085 * _fr_bump(0.0, 0.5, 0.26)) - 0.009
     gem = attach(sphere("fr_chest_gem", 1, P, c, (0.04, 0.022, 0.034), outline=0.003), R["chest"], (0, gy, 0.15))
-    gem.visible_shadow = False                   # vật nhỏ cong: tự đổ bóng lên chính nó thành sọc lấm tấm
-    # cổ chắc hơn (v19: cổ que 0.045 làm đầu như bóng đèn cắm trên que), loe cơ ức đòn chũm xuống vai
-    # v25 cổ thon phía trên + dẹt trước-sau: cằm nhô ra trước cổ (trước mặt trước cổ nhô hơn cằm → đầu liền cổ như
-    # con ki bowling, không thấy đường hàm)
-    # v30 cổ tông bóng (cằm đổ bóng xuống cổ như anime): trước cùng trắng với đầu → đầu liền một khối với cổ to
+    gem.visible_shadow = False                   # small curved object: self-shadow turns into speckled stripes
+    # sturdier neck (v19: a 0.045 stick neck made the head a bulb on a stick), sternocleidomastoid flaring into the shoulders
+    # v25 neck slimmer on top + flatter front-to-back: chin juts past the neck (before, the neck front stuck out past the chin → head
+    # merged into the neck like a bowling pin, no jawline)
+    # v30 neck in shadow tone (chin shadow, anime style): before, same white as the head → head and thick neck read as one block
     NECK_ = toon("fr_neck_skin", "#E4DCF0", "#CFC2E6", "#E4DCF0")
     LINE_COLORS.setdefault("fr_neck_skin", LINE_COLORS.get("f_white", "#3E2A66"))
     fr_body("fr_neck", [(0.335, 0.008), (0.33, 0.04), (0.315, 0.05), (0.292, 0.054), (0.272, 0.062),
                         (0.255, 0.086), (0.24, 0.06), (0.232, 0.008)], NECK_, c, R["chest"], seg=28, sy=0.8,
             rfn=lambda t, z, r: r * (1 - 0.18 * max(0.0, -math.sin(t)) * _fr_bump(z, 0.29, 0.025)))
-    # đầu final form: sọ tròn dưới vòm, nửa dưới mặt thon về cằm nhỏ (fr_head_surf); decal/vòm/tai ôm theo hàm này
+    # final-form head: round skull under the dome, lower face tapering to a small chin (fr_head_surf); decals/dome/ears follow it
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=48, v_segments=24, radius=1.0)
     for v in bm.verts:
         v.co = fr_head_surf(v.co)
-    # mặt riêng: gần như sáng toàn mặt (trước nửa mặt phủ mảng bóng lavender như bị bẩn), nét viền tím như thân
+    # own face material: lit almost fully (before, a lavender shadow covered half the face like dirt), purple outline like the body
     face_m = toon("fr_face", "#F9F6FC", "#E9E2F4", "#FFFFFF", rim=0.6)
     LINE_COLORS["fr_face"] = LINE_COLORS["f_white"]
     attach(_obj("fr_head", bm, face_m, c, outline=0.007), R["head"], tuple(hc))
-    # vòm đầu tím bóng: vỏ lớn hơn đầu 3.5%, dựng theo (az, el) từ mép lên đỉnh nên mép trơn liền mạch.
-    # v15: vòm to đúng nguyên tác — mép trước xuống sát trên chân mày (~26°), thái dương 13° (trên lỗ tai), gáy -32°
-    cut = lambda az: 5 - 29.5 * math.cos(az) - 8 * math.cos(2 * az) - 7 * max(0.0, -math.cos(az)) ** 3   # v22 mép trước 26.5° → 19.5°
+    # glossy purple head dome: shell 3.5% bigger than the head, built by (az, el) from edge to top so the edge is seamless.
+    # v15: dome as big as the original — front edge just above the brows (~26°), temples 13° (above the ears), nape -32°
+    cut = lambda az: 5 - 29.5 * math.cos(az) - 8 * math.cos(2 * az) - 7 * max(0.0, -math.cos(az)) ** 3   # v22 front edge 26.5° → 19.5°
     bm = bmesh.new()
-    # v27 rd 1.035 → 1.048: mặt trong vòm trùng gần khít vỏ viền của đầu (r + 0.007) → nhìn xa z-fight thành đường chấm trắng dọc mép
+    # v27 rd 1.035 → 1.048: dome inside almost on the head outline shell (r + 0.007) → distant z-fight as a white dotted edge
     NA, NE, rd = 64, 16, FR_DOME_RD
     rows = []
     for j in range(NE):
@@ -1525,7 +1525,7 @@ def build_frieza():
     top = bm.verts.new(fr_head_surf(Vector((0, 0, 1))) * rd)
     for j in range(NE - 1):
         for i in range(NA):
-            bm.faces.new((rows[j][i], rows[j + 1][i], rows[j + 1][(i + 1) % NA], rows[j][(i + 1) % NA]))   # pháp tuyến hướng ra
+            bm.faces.new((rows[j][i], rows[j + 1][i], rows[j + 1][(i + 1) % NA], rows[j][(i + 1) % NA]))   # normals face outward
     for i in range(NA):
         bm.faces.new((rows[-1][i], top, rows[-1][(i + 1) % NA]))
     dome = _obj("fr_dome", bm, P, c, outline=0.006)
@@ -1543,17 +1543,17 @@ def build_frieza():
         R["eyes_shock"].append(fr_face_decal(f"fr_eye_shock_{side}", R["head"], hc, 180 + sgn * 20, -2, 0.136, 0.159, T[f"frieza_eye_shock_{side}"], c, 1))
         R["eyes_angry"].append(fr_face_decal(f"fr_eye_angry_{side}", R["head"], hc, 180 + sgn * 20, -2, 0.132, 0.142, T[f"frieza_eye_angry_{side}"], c, 1))
         R["eyes_hit"].append(fr_face_decal(f"fr_eye_hit_{side}", R["head"], hc, 180 + sgn * 20, -2, 0.132, 0.13, T[f"frieza_eye_hit_{side}"], c, 1))
-        # vạch tím dưới mắt (final form), luôn hiện bất kể nét mặt
+        # purple marks under the eyes (final form), always visible regardless of expression
         fr_face_decal(f"fr_cheek_{side}", R["head"], hc, 180 + sgn * 26, -20, 0.058, 0.055,
                       tex_mat(f"tx_frieza_cheek_{side}", f"frieza_cheek_{side}.png"), c, 0)
     ear = tex_mat("tx_frieza_ear", "frieza_ear.png")
     for side, sgn in (("R", 1), ("L", -1)):
         fr_face_decal(f"fr_ear_{side}", R["head"], hc, 180 + sgn * 90, 2, 0.035, 0.05, ear, c, 0)
-    # vòm đầu giờ phủ tới trán: gân giận dán lên mặt vòm, giọt mồ hôi xuống thái dương (dưới mép vòm)
+    # dome now reaches the forehead: anger vein on the dome, sweat drop down the temple (below the dome edge)
     R["anger"] = fr_face_decal("fr_anger", R["head"], hc, 180 - 40, 37, 0.09, 0.09, tex_mat("tx_anger", "anger.png"), c, 2,
                                surf=lambda d: fr_head_surf(d) * FR_DOME_RD, lift=0.0065)
     R["sweat"] = fr_face_decal("fr_sweat", R["head"], hc, 180 + 56, 8, 0.05, 0.07, tex_mat("tx_sweat", "sweat.png"), c, 2)
-    # v26 mũi: hai lỗ mũi nhỏ giữa mắt và miệng (trước mặt trơn không mũi như mặt nạ)
+    # v26 nose: two small nostrils between eyes and mouth (before, a smooth noseless face like a mask)
     fr_face_decal("fr_nose", R["head"], hc, 180, -17, 0.05, 0.034, tex_mat("tx_frieza_nose", "frieza_nose.png"), c, 0)
     R["mouth"] = [fr_face_decal("fr_mouth", R["head"], hc, 180, -29, 0.088, 0.08, T["frieza_mouth"], c, 0)]
     R["laugh"] = [fr_face_decal("fr_mouth_laugh", R["head"], hc, 180, -30, 0.068, 0.05, tex_mat("tx_frieza_mouth_laugh", "frieza_mouth_laugh.png"), c, 0)]
@@ -1561,13 +1561,13 @@ def build_frieza():
     R["snarl"] = [fr_face_decal("fr_mouth_snarl", R["head"], hc, 180, -30, 0.082, 0.056, T["frieza_mouth_snarl"], c, 0)]
     R["pain"] = [fr_face_decal("fr_mouth_pain", R["head"], hc, 180, -32, 0.078, 0.076, T["frieza_mouth_pain"], c, 0)]
     for side, sx in (("R", -1), ("L", 1)):
-        # giáp vai dạng vòm (nửa dưới ép dẹt thành đáy phẳng ôm vai) thay vì quả cầu đeo vòng như sao Thổ
+        # domed shoulder pads (lower half flattened to hug the shoulder) instead of a sphere wearing a Saturn ring
         pad = attach(sphere(f"fr_shoulder_{side}", 0.07, P, c, (1.12, 1.0, 0.74)), R[f"sh_{side}"], (sx * 0.012, 0, 0.012))
         for v in pad.data.vertices:
             if v.co.z < 0:
                 v.co.z *= 0.42
-        # bắp tay trên thon (gốc chìm trong giáp vai), cẳng tay giáp tím ôm, loe nhẹ ở khuỷu
-        # v22 tay trắng liền một khối bẻ ở khuỷu (skin_limb), cẳng tay trắng chạy dưới giáp tím
+        # slim upper arm (root sunk in the shoulder pad), purple forearm armour hugging it, flaring slightly at the elbow
+        # v22 white arm as one piece bending at the elbow (skin_limb), white forearm running under the purple armour
         Lf = FRIEZA_DIM["upper"]
         skin_limb(f"fr_arm_{side}", [(0.02, 0.0), (0.012, 0.038), (-0.012, 0.047), (-0.05, 0.047), (-0.095, 0.041),
                                      (-0.14, 0.036), (-Lf, 0.034), (-Lf - 0.03, 0.032), (-Lf - 0.08, 0.03),
@@ -1577,8 +1577,8 @@ def build_frieza():
         fr_body(f"fr_fore_{side}", [(0.016, 0.006), (0.008, 0.032), (-0.008, 0.044), (-0.035, 0.048), (-0.07, 0.046),
                                     (-0.098, 0.041), (-0.118, 0.037), (-0.128, 0.028), (-0.133, 0.006)],
                 P, c, R[f"el_{side}"], (0, 0, -0.065), sy=0.92, seg=28)
-        # v16 bàn tay chibi 4 ngón (3 ngón + cái), thay cho găng tròn: lòng bàn tay dẹt + ngón bo tròn.
-        # Hai bộ ngón đổi bằng hiện/ẩn (finger_when_shooting): co hờ (khoanh tay, đấm, bay) và xoè (hoảng, trúng đòn).
+        # v16 chibi 4-finger hand (3 fingers + thumb), replacing the round glove: flat palm + rounded fingers.
+        # Two finger sets shown/hidden (finger_when_shooting): half-curled (crossed arms, punch, flight), spread (panic, hit).
         attach(sphere(f"fr_hand_{side}", 0.045, W_, c, (0.78, 1.0, 0.86)), R[f"el_{side}"], (0, 0, -0.155))
         attach(capsule(f"fr_thumb_{side}", 0.0125, 0.024, W_, c, seg=12, outline=0.003),
                R[f"el_{side}"], (-sx * 0.03, -0.032, -0.162), (62, 0, -sx * 28))
@@ -1590,19 +1590,19 @@ def build_frieza():
                                         spread * (i - 1)))
             ob = _obj(name, bm, W_, c, outline=0.003)
             ob.parent = R[f"el_{side}"]
-            ob.visible_shadow = False            # ngón nhỏ: tự đổ bóng thành vệt lấm tấm
+            ob.visible_shadow = False            # small fingers: self-shadow turns into speckled streaks
             return ob
         R[f"fingers_{side}"] = [fset(f"fr_fingers_{side}", (1, 2) if side == "R" else (0, 1, 2), 95, 0, 0.036)]
-        if side == "R":                          # ngón trỏ co hờ: ẩn khi ngón trỏ duỗi bắn Death Beam
+        if side == "R":                          # half-curled index: hidden while the index extends to fire the Death Beam
             R["finger_idx_R"] = fset("fr_finger_idx_R", (0,), 95, 0, 0.036)
         R[f"fingers_open_{side}"] = fset(f"fr_fingers_open_{side}", (0, 1, 2), 18, -13, 0.042)
-        if side == "R":                          # ngón trỏ duỗi ra (bắn Death Beam)
+        if side == "R":                          # extended index finger (firing the Death Beam)
             attach(capsule("fr_finger_R", 0.0118, 0.035, W_, c, seg=12, outline=0.003), R["el_R"], (0, -0.014, -0.205))
-        # đùi thon dần vào gối (gốc chìm trong hông), giáp ống chân tím có bắp chân, bàn chân nhỏ gọn (ngón: frieza_details)
+        # thighs tapering to the knee (root sunk in hips), purple shin armour with calf, small neat feet (toes: frieza_details)
         def thigh_rfn(t, z, r, sx=sx):
-            inner = max(0.0, -sx * math.cos(t))      # mặt trong đùi phẳng hơn để hai đùi không cấn nhau
+            inner = max(0.0, -sx * math.cos(t))      # flatter inner thigh so the two thighs don't clash
             return r * (1 - 0.1 * inner * _fr_bump(z, -0.03, 0.06))
-        # v22 chân trắng liền một khối bẻ ở gối (skin_limb) thay đùi + quả cầu gối rời; ống chân trắng chạy dưới giáp tím
+        # v22 white leg as one piece bending at the knee (skin_limb), not thigh + knee sphere; white shin runs under the purple armour
         Lt = FRIEZA_DIM["thigh"]
         skin_limb(f"fr_leg_{side}", [(0.004, 0.0), (-0.004, 0.034), (-0.022, 0.05), (-0.05, 0.056), (-0.085, 0.052),
                                      (-0.135, 0.044), (-0.175, 0.039), (-Lt + 0.01, 0.037), (-Lt, 0.038),
@@ -1610,17 +1610,17 @@ def build_frieza():
                                      (-Lt - 0.2, 0.0)],
                   R[f"hip_{side}"], R[f"kn_{side}"], W_, c, seg=28, blend=0.04,
                   rfn=lambda t, z, r, w, f=thigh_rfn: f(t, z, r) if w < 0.5 else r)
-        def shin_rfn(t, z, r):                   # bắp chân nhô sau, ống chân trước hơi sống
+        def shin_rfn(t, z, r):                   # calf bulges at the back, slight shin ridge at the front
             return r * (1 + 0.1 * max(0.0, math.sin(t)) * _fr_bump(z, -0.06, 0.035))
         fr_body(f"fr_shin_{side}", [(-0.008, 0.006), (-0.012, 0.032), (-0.022, 0.045), (-0.04, 0.048), (-0.072, 0.045),
                                     (-0.11, 0.039), (-0.145, 0.034), (-0.165, 0.033), (-0.177, 0.026), (-0.182, 0.006)],
                 P, c, R[f"kn_{side}"], (0, 0, -0.09), sy=0.95, rfn=shin_rfn, seg=28)
         attach(sphere(f"fr_foot_{side}", 1, W_, c, (0.04, 0.064, 0.03)), R[f"kn_{side}"], (0, -0.018, FR_FOOT_Z + 0.006))
-    # đuôi: 8 khớp Empty (vũ đạo xoay các khớp này) + 1 đường cong NURBS liền mạch móc (hook) vào từng khớp,
-    # vát tròn thon dần từ gốc tới chóp
+    # tail: 8 Empty joints (choreography rotates these joints) + 1 seamless NURBS curve hooked to each joint,
+    # round bevel tapering from root to tip
     prev, R["tail"] = R["hips"], []
-    # v17 dáng chữ S thanh thoát: cong sẵn bằng delta_rotation (cộng thêm vào key lắc đuôi ở choreograph, không đổi
-    # vũ đạo): gốc rủ xuống sau mông, giữa vòng ra sau, chóp hất lên; đốt ngắn dần về chóp
+    # v17 elegant S-curve: pre-curved via delta_rotation (added on top of the tail-sway keys in choreograph, choreography
+    # unchanged): root droops behind the rear, middle loops back, tip flicks up; segments shorten toward the tip
     s_rx = (-4, -12, -10, 16, 34, 42, 40, 34)
     s_ln = (0.1, 0.1, 0.098, 0.096, 0.092, 0.088, 0.084, 0.08)
     for i in range(8):
@@ -1639,7 +1639,7 @@ def build_frieza():
     for i, h in enumerate(hooks):
         p = h.matrix_world.translation + (Vector((0, 0.03, -0.02)) if i == 0 else Vector())
         sp.points[i].co = (p.x, p.y, p.z, 1.0)
-        sp.points[i].radius = (1.0, 0.86, 0.7, 0.56, 0.44, 0.34, 0.25, 0.17, 0.09, 0.0)[i]   # gốc dày, thon nhọn tới chóp
+        sp.points[i].radius = (1.0, 0.86, 0.7, 0.56, 0.44, 0.34, 0.25, 0.17, 0.09, 0.0)[i]   # thick root, tapering to a point
     cu.bevel_depth, cu.bevel_resolution, cu.use_fill_caps, cu.resolution_u = 0.064, 5, True, 12
     tail = bpy.data.objects.new("fr_tail", cu)
     c.objects.link(tail)
@@ -1651,9 +1651,9 @@ def build_frieza():
         hk.vertex_indices_set([i])
         hk.matrix_inverse = h.matrix_world.inverted()
     ol = tail.modifiers.new("Outline", "SOLIDIFY")
-    ol.thickness, ol.offset, ol.use_flip_normals, ol.use_rim, ol.material_offset = -0.004, -1.0, True, False, 1   # pháp tuyến ống vát hướng vào trong
+    ol.thickness, ol.offset, ol.use_flip_normals, ol.use_rim, ol.material_offset = -0.004, -1.0, True, False, 1   # bevelled tube normals face inward
     R["finger_anchor"] = empty("FRIEZA_finger_anchor", c, R["el_R"], (0, -0.012, -0.235), 0.05)
-    # quả cầu khí: lõi trắng nóng → hồng → viền tím hồng đậm theo góc nhìn (trước là một đĩa hồng phẳng như miếng dán)
+    # Ki ball: hot white core → pink → deep magenta rim by view angle (before, a flat pink disc like a sticker)
     nt = M["charge"].node_tree
     em = next(n for n in nt.nodes if n.type == "EMISSION")
     lw = nt.nodes.new("ShaderNodeLayerWeight"); lw.inputs["Blend"].default_value = 0.35
@@ -1661,7 +1661,7 @@ def build_frieza():
     cr.elements[0].color, cr.elements[1].position, cr.elements[1].color = hexc("#FFFFFF"), 0.1, hexc("#FF62D2")
     e = cr.elements.new(0.32); e.color = hexc("#B81C9C")
     nt.links.new(lw.outputs["Facing"], ramp.inputs["Fac"]); nt.links.new(ramp.outputs["Color"], em.inputs["Color"])
-    R["charge"] = sphere("fr_charge", 0.032, M["charge"], c, seg=24, outline=0)   # đầu ngón tay tụ khí trước khi bắn
+    R["charge"] = sphere("fr_charge", 0.032, M["charge"], c, seg=24, outline=0)   # fingertip charges Ki before firing
     attach(R["charge"], R["finger_anchor"], (0, 0, 0))
     R["charge"].visible_shadow = False
     R["head_anchor"] = empty("FRIEZA_head_anchor", c, R["head"], tuple(hc), 0.05)
@@ -1670,12 +1670,12 @@ def build_frieza():
 
 
 # ───────────────────────────── environment ─────────────────────────────
-CHASE_SPIRES = [(22, 4.6, 0), (38, -10, 0), (55, 8, 0), (72, -6, 0)]   # cột 0 từng nằm ngay trên đường bay (bay xuyên lõi đá)
+CHASE_SPIRES = [(22, 4.6, 0), (38, -10, 0), (55, 8, 0), (72, -6, 0)]   # spire 0 used to sit on the flight path (flew through the rock)
 BLASTS = [(840, Vector((30.0, 9.5, 8.0))), (900, Vector((48.0, -8.5, 10.0))), (955, Vector((63.0, 6.5, 7.0)))]
 
 
 def chase_path(u):
-    """Đường bay shot 8 (u: 0..1), luồn giữa các cột đá."""
+    """Flight path for shot 8 (u: 0..1), weaving between the rock spires."""
     return Vector((4 + u * 80, 9 * math.sin(u * math.tau * 1.15), 5 + 3 * math.sin(u * math.tau * 0.9 + 0.6)))
 
 
@@ -1711,14 +1711,14 @@ def build_env():
     while n < 34:
         a, d = random.uniform(0, math.tau), random.uniform(16, 160)
         x, y = math.cos(a) * d, math.sin(a) * d
-        if abs(y) < 14 and 0 < x < 90:      # chừa đường bay
+        if abs(y) < 14 and 0 < x < 90:      # keep the flight path clear
             continue
         spire(f"spire_{n}", x, y, random.uniform(2, 6), random.uniform(8, 40))
         n += 1
     for i in range(26):
         a, d = random.uniform(0, math.tau), random.uniform(9, 60)
         tree(f"tree_{i}", math.cos(a) * d, math.sin(a) * d, 0, random.uniform(0.8, 1.4))
-    # mây: cụm nhiều khối cầu phồng (chỉ dùng khi không có bầu trời vẽ tay, vì ảnh trời đã có mây)
+    # clouds: clusters of puffy spheres (only used without the hand-painted sky, since the sky image already has clouds)
     for i in range(0 if os.path.exists(os.path.join(TEX, "sky_calm.jpg")) else 16):
         bm = bmesh.new()
         sz = random.uniform(10, 18)
@@ -1734,9 +1734,9 @@ def build_env():
         a = random.uniform(0, math.tau)
         cl.location = (math.cos(a) * 150, math.sin(a) * 150, random.uniform(55, 90))
         cl.rotation_euler = (0, 0, a + math.pi / 2)
-    # thảm cỏ loang + bụi cỏ + đá nhỏ quanh sân đấu (chừa vòng nứt quanh Goku)
+    # patchy grass mats + grass tufts + small rocks around the arena (leaving the crack ring around Goku clear)
     bm = bmesh.new()
-    for i in range(0 if os.path.exists(os.path.join(TEX, "ground_grass.jpg")) else 36):   # đất đã vẽ tay thì bỏ thảm loang
+    for i in range(0 if os.path.exists(os.path.join(TEX, "ground_grass.jpg")) else 36):   # hand-painted ground: skip the patchy mats
         a, d = random.uniform(0, math.tau), random.uniform(6, 55)
         tmp = bmesh.new()
         bmesh.ops.create_circle(tmp, cap_ends=True, segments=20, radius=1.0)
@@ -1764,8 +1764,8 @@ def build_env():
             _merge(bm, tmp)
     tufts = _obj("grass_tufts", bm, M["grass_top"], c, smooth=False, outline=0)
     tufts.visible_shadow = False
-    # đá nhỏ: trước là 70 icosphere bẹt nửa chìm tô một màu nâu → nhìn như vết bẩn. Giờ ít hơn (~40%), có khối,
-    # 3 tông cel + viền, đôi khi kèm 1–2 hòn con. Vẫn gọi `random` đúng số lần cũ để không xáo vết nứt/debris phía sau.
+    # small rocks: before, 70 flat half-sunk icospheres in one brown → looked like dirt stains. Now fewer (~40%), solid,
+    # 3 cel tones + outline, sometimes 1–2 pebbles. Calls `random` the same number of times so later cracks/debris don't reshuffle.
     bm = bmesh.new()
     prng = random.Random(911)
     for i in range(70):
@@ -1779,7 +1779,7 @@ def build_env():
             oa = prng.uniform(0, math.tau)
             rock_lump(bm, (cx + math.cos(oa) * r0 * 1.2, cy + math.sin(oa) * r0 * 1.2), r0 * prng.uniform(0.3, 0.5), prng)
     peb = _obj("pebbles", bm, M["rock_small"], c, smooth=False, outline=0.012)
-    # nhà mái vòm người Namek ở hậu cảnh
+    # Namekian domed houses in the background
     for i, (x, y, sz) in enumerate([(-18, 26, 2.6), (-23, 21, 1.8), (-12, 31, 2.0), (26, 34, 2.4), (31, 29, 1.6)]):
         hb = sphere(f"house_{i}", sz, M["house"], c, (1, 1, 0.82), seg=28, outline=0.03)
         hb.location = (x, y, sz * 0.25)
@@ -1793,13 +1793,13 @@ def build_env():
         dvec = Vector((math.cos(math.atan2(-y, -x) + 1.2), math.sin(math.atan2(-y, -x) + 1.2), 0))
         door.location = Vector((x, y, sz * 0.25)) + dvec * sz * 0.98
         door.rotation_euler = (0, 0, math.atan2(dvec.y, dvec.x) + math.pi / 2)
-    # vết nứt toả ra quanh Goku, debris, cột nước
+    # cracks radiating around Goku, debris, water columns
     cracks = []
     for i in range(14):
         a = i / 14 * math.tau + random.uniform(-0.15, 0.15)
         piv = empty(f"crack_{i}", c, None, (0, 0, 0.005))
         piv.rotation_euler = (0, 0, a)
-        # khe nứt zigzag thon dần: mép tối + lõi rực sáng (piv giãn theo Y nên biên độ ngang giữ nguyên khi lan dài)
+        # tapering zigzag crack: dark edge + glowing core (piv scales along Y so sideways amplitude holds as it lengthens)
         zr = random.Random(300 + i)
         pts = [(0.0, 0.0)] + [(zr.uniform(-0.035, 0.035), (k_ + zr.uniform(-0.3, 0.3)) / 9) for k_ in range(1, 9)] + [(0.0, 1.0)]
         for nm, w0, mat, z in ((f"crack_mesh_{i}", 0.05, M["crack_edge"], 0.0), (f"crack_core_{i}", 0.022, M["crack"], 0.004)):
@@ -1815,7 +1815,7 @@ def build_env():
             attach(k, piv, (0, 0, 0))
         cracks.append((piv, random.uniform(1.6, 4.0)))
     debris = []
-    chunk = M["rock_small"]      # cùng chất liệu đá nhỏ (trước: rock.jpg nâu phẳng → chấm bẩn trên cỏ khi nằm yên)
+    chunk = M["rock_small"]      # same material as small rocks (before: flat brown rock.jpg → dirt specks on the grass at rest)
     for i in range(46):
         bm = bmesh.new()
         bmesh.ops.create_icosphere(bm, subdivisions=1, radius=random.uniform(0.05, 0.22))
@@ -1823,8 +1823,8 @@ def build_env():
         a, r = random.uniform(0, math.tau), random.uniform(1.2, 6.0)
         debris.append((d, a, r))
     splash = cyl("splash", 1.6, 0.2, 6, M["splash"], c, seg=14, outline=0.05)
-    # bờ đá quanh đảo: vách đá gồ ghề từ mặt biển lên sát mép cỏ (trước đó là mặt hông của khối trụ cỏ, ảnh bị kéo
-    # thành sọc dọc). Dùng RNG riêng để không xáo các vật ngẫu nhiên phía sau.
+    # rock shore around the island: rugged cliffs from the sea to the grass edge (before, the grass cylinder's side, image
+    # stretched into vertical stripes). Uses its own RNG so later random objects aren't reshuffled.
     rng = random.Random(75)
     bm = bmesh.new()
     seg, rows = 220, 4
@@ -1841,13 +1841,13 @@ def build_env():
         for i in range(seg):
             a, b = ring[j], ring[j + 1]
             bm.faces.new((a[i], a[(i + 1) % seg], b[(i + 1) % seg], b[i]))
-    # gờ trên phủ lên mép cỏ một chút để không hở khe
+    # top lip overlaps the grass edge slightly to leave no gap
     top = [bm.verts.new((v.co.x * 74.6 / v.co.xy.length, v.co.y * 74.6 / v.co.xy.length, 0.02)) for v in ring[-1]]
     for i in range(seg):
         bm.faces.new((ring[-1][i], ring[-1][(i + 1) % seg], top[(i + 1) % seg], top[i]))
     bm.normal_update()
     cliff = _obj("shore_cliff", bm, rock, c, smooth=False, outline=0.03)
-    # bọt sóng trắng vỗ quanh chân vách: vành khuyên trên mặt biển, alpha = noise cắt cứng × mờ dần ra ngoài
+    # white foam lapping around the cliff base: annulus on the sea surface, alpha = hard-cut noise × fade outward
     fm = bpy.data.materials.new("foam")
     fm.use_nodes = True
     nt = fm.node_tree
@@ -1915,14 +1915,14 @@ def build_world():
         return bg
 
     calm, storm = ramp("#C9EDB4", "#6CC07A"), ramp("#5B7A62", "#18241E")
-    # bầu trời vẽ tay (Codex): ảnh 2:1 quấn 2 vòng quanh 360°, chân ảnh (biển + mesa xa) đặt ở đường chân trời
+    # hand-painted sky (Codex): 2:1 image wrapped twice around 360°, image bottom (sea + distant mesas) placed at the horizon
     if os.path.exists(os.path.join(TEX, "sky_calm.jpg")):
         at = N.new("ShaderNodeMath"); at.operation = "ARCTAN2"
         L.new(sep.outputs["Y"], at.inputs[0]); L.new(sep.outputs["X"], at.inputs[1])
         u = N.new("ShaderNodeMath"); u.operation = "DIVIDE"; u.inputs[1].default_value = math.pi
         L.new(at.outputs[0], u.inputs[0])
-        drift = N.new("ShaderNodeValue"); drift.name = "sky_drift"      # mây trôi chậm theo thời gian
-        # v30 mây giông cuồn cuộn trôi nhanh lúc giông đầu phim (gió mạnh), chậm hẳn sau nổ biến hình (frame gốc 296)
+        drift = N.new("ShaderNodeValue"); drift.name = "sky_drift"      # clouds drift slowly over time
+        # v30 storm clouds billow fast early (strong wind), much slower after the transformation blast (orig. frame 296)
         for f_, v_ in ((0, 0.0), (296, 0.026), (FRAMES - 1, 0.04)):
             drift.outputs[0].default_value = v_; drift.outputs[0].keyframe_insert("default_value", frame=f_)
         for fc in _fcurves(nt.animation_data):
@@ -1930,7 +1930,7 @@ def build_world():
                 kp.interpolation = "LINEAR"
         ud = N.new("ShaderNodeMath"); ud.operation = "ADD"
         L.new(u.outputs[0], ud.inputs[0]); L.new(drift.outputs[0], ud.inputs[1])
-        uw = N.new("ShaderNodeMath"); uw.operation = "FLOORED_MODULO"; uw.inputs[1].default_value = 1.0   # ảnh EXTEND: gói u về 0..1
+        uw = N.new("ShaderNodeMath"); uw.operation = "FLOORED_MODULO"; uw.inputs[1].default_value = 1.0   # EXTEND image: wrap u to 0..1
         L.new(ud.outputs[0], uw.inputs[0])
         u = uw
         for bg, png, hv in ((calm, "sky_calm.jpg", 0.055), (storm, "sky_storm.jpg", 0.03)):
@@ -1945,7 +1945,7 @@ def build_world():
             L.new(im.outputs["Color"], bg.inputs["Color"])
     mix = N.new("ShaderNodeMixShader"); mix.name = "storm"
     L.new(calm.outputs[0], mix.inputs[1]); L.new(storm.outputs[0], mix.inputs[2])
-    amb = N.new("ShaderNodeBackground"); amb.inputs["Color"].default_value = hexc("#7FA88F"); amb.inputs["Strength"].default_value = 0.0   # GI của EEVEE gây nhiễu qua ngưỡng toon
+    amb = N.new("ShaderNodeBackground"); amb.inputs["Color"].default_value = hexc("#7FA88F"); amb.inputs["Strength"].default_value = 0.0   # EEVEE GI causes noise across the toon threshold
     lp = N.new("ShaderNodeLightPath")
     cam = N.new("ShaderNodeMixShader")
     L.new(lp.outputs["Is Camera Ray"], cam.inputs[0])
@@ -1971,7 +1971,7 @@ def build_lights(goku):
     for i, (x, y, z) in enumerate([(0.8, 0.4, 1.2), (-0.8, 0.4, 1.2), (0, -0.7, 0.4), (0, 0.6, 2.0)]):
         d = bpy.data.lights.new(f"aura_light_{i}", "POINT")
         d.energy, d.color, d.shadow_soft_size = 0.0, (1.0, 0.78, 0.25), 0.4
-        d.use_shadow = False                 # chỉ là ánh hắt; bóng mềm của đèn điểm gây nhiễu
+        d.use_shadow = False                 # bounce light only; soft point-light shadows cause noise
         o = bpy.data.objects.new(f"aura_light_{i}", d)
         C_LIGHT.objects.link(o)
         o.parent, o.location = goku["root"], (x, y, z)
@@ -2065,7 +2065,7 @@ PARTS = ("hips", "chest", "head", "sh_R", "el_R", "sh_L", "el_L", "hip_R", "kn_R
 
 
 def pose(R, f, name, **extra):
-    """Key mọi khớp theo pose; hông chỉ key khi được truyền (dành cho lộn vòng lúc bay)."""
+    """Keys every joint per the pose; hips are keyed only when passed (for flips during flight)."""
     p = dict(POSE[name])
     p.update(extra)
     for part in PARTS:
@@ -2076,7 +2076,7 @@ def pose(R, f, name, **extra):
 
 def root(R, f, loc, yaw=0.0, pitch=0.0, roll=0.0):
     kloc(R["root"], f, loc)
-    krot(R["root"], f, (pitch, roll, yaw))      # XYZ: cúi (pitch) trước rồi mới quay (yaw)
+    krot(R["root"], f, (pitch, roll, yaw))      # XYZ: pitch first, then yaw
 
 
 # ───────────────────────────── choreography ─────────────────────────────
@@ -2084,7 +2084,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
     goku_pos = Vector((0, 0, 0))
     fr_pos = Vector((0, 9, 3.0))
 
-    # Shot 1–5: Goku đứng trên đất (nhìn +Y về phía Frieza)
+    # Shots 1–5: Goku standing on the ground (facing +Y toward Frieza)
     root(G, 0, goku_pos, 180)
     pose(G, 0, "clench")
     pose(G, 110, "clench", head=(24, 0, 0))
@@ -2099,7 +2099,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
     kloc(G["root"], 380, goku_pos)
     pose(G, 509, "hero", head=(-6, 0, 4))
 
-    # Frieza lơ lửng khoanh tay
+    # Frieza hovering with arms crossed
     for f in range(0, 511, 30):
         root(F, f, fr_pos + Vector((0, 0, 0.08 * math.sin(f / 30 * math.pi))), 0)
     pose(F, 0, "cross")
@@ -2110,7 +2110,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
     pose(F, 690, "point")
     root(F, 690, fr_pos)
 
-    # Shot 7: né Death Beam (bullet-time), rồi Frieza lao vào combo
+    # Shot 7: dodge the Death Beam (bullet-time), then Frieza charges in for a combo
     beams = [570, 585, 600, 622, 644, 666]
     sides = ["dodge_r", "dodge_l", "dodge_r", "dodge_l", "dodge_r", "dodge_l"]
     pose(G, 560, "hero")
@@ -2119,25 +2119,25 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         pose(G, bf + 2, sd)
         pose(G, bf + 12, sd)
     root(G, 680, goku_pos, 180)
-    # combo cận chiến: Frieza lao tới đấm → Goku đỡ (719) → Frieza đá → Goku né lên → Goku phản đòn
-    # đấm vào thế chéo tay của Frieza (747) → Frieza bật lùi rồi bay đi (vào shot truy đuổi)
+    # close-combat combo: Frieza rushes in punching → Goku blocks (719) → Frieza kicks → Goku dodges up → Goku counters
+    # with a punch into Frieza's crossed-arm guard (747) → Frieza is knocked back, then flies off (into the chase shot)
     G0 = goku_pos + Vector((0, 0, 1.4))
     root(G, 705, G0, 180); pose(G, 705, "guard")
     root(F, 700, fr_pos + Vector((0, -1, 0.2))); pose(F, 700, "dash")
     root(F, 712, Vector((0, 1.7, 1.55))); pose(F, 712, "dash")
     root(F, 718, Vector((0, 0.7, 1.45))); pose(F, 717, "punch")
     root(G, 716, G0, 180); pose(G, 716, "guard")
-    root(G, 722, G0 + Vector((0, -0.14, 0.02)), 182)             # bị đẩy lùi khi đỡ
+    root(G, 722, G0 + Vector((0, -0.14, 0.02)), 182)             # pushed back while blocking
     pose(F, 724, "stand")
     root(F, 726, Vector((0, 0.72, 1.48)), 8); pose(F, 731, "kick")
     root(G, 727, G0 + Vector((0, -0.12, 0.05)), 180); pose(G, 727, "guard")
-    root(G, 732, G0 + Vector((0.08, -0.08, 0.32)), 172); pose(G, 732, "dodge_r")   # bật lên né cú đá
+    root(G, 732, G0 + Vector((0.08, -0.08, 0.32)), 172); pose(G, 732, "dodge_r")   # springs up to dodge the kick
     pose(F, 737, "stand")
     root(F, 738, Vector((0, 0.82, 1.5)), 0); pose(F, 741, "cross")
     root(G, 739, G0 + Vector((0, -0.05, 0.1)), 180); pose(G, 739, "guard")
-    root(G, 746, G0 + Vector((0, 0.16, 0.08)), 176); pose(G, 744, "punch")       # phản đòn
+    root(G, 746, G0 + Vector((0, 0.16, 0.08)), 176); pose(G, 744, "punch")       # counter
     root(F, 747, Vector((0, 0.86, 1.5)), 0)
-    root(F, 753, Vector((0.05, 1.6, 1.75)), -6); pose(F, 753, "hit")             # bật lùi
+    root(F, 753, Vector((0.05, 1.6, 1.75)), -6); pose(F, 753, "hit")             # knocked back
     pose(G, 756, "punch")
     root(G, 762, G0 + Vector((0, 0.05, 0.12)), 180); pose(G, 764, "guard")
     root(F, 766, Vector((0.35, 2.3, 2.0)), 20); pose(F, 766, "dash")
@@ -2145,14 +2145,14 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
     root(G, 779, goku_pos + Vector((-0.6, 0, 1.8)), 170)
     root(F, 779, Vector((0.6, 1.3, 1.8)), 10)
 
-    # Shot 8: truy đuổi (Goku dẫn trước, Frieza đuổi theo bắn ki blast)
+    # Shot 8: chase (Goku leads, Frieza pursues firing ki blasts)
     def follow(R, f, u, roll_extra=0.0, pose_name="fly"):
         p = chase_path(u)
-        t = (chase_path(u + 0.005) - chase_path(u - 0.005)).normalized()   # sai phân đối xứng, không kẹp biên
-        yaw = math.degrees(math.atan2(-t.x, t.y)) + 180  # mặt -Y quay theo hướng bay
+        t = (chase_path(u + 0.005) - chase_path(u - 0.005)).normalized()   # central difference, no edge clamping
+        yaw = math.degrees(math.atan2(-t.x, t.y)) + 180  # -Y face turns toward the flight direction
         curv = (chase_path(u + 0.02) - 2 * p + chase_path(u - 0.02)).y
         root(R, f, p, yaw, 78)
-        krot(R["hips"], f, (0, 0, -curv * 120 + roll_extra))   # nghiêng theo cua / lộn vòng
+        krot(R["hips"], f, (0, 0, -curv * 120 + roll_extra))   # bank into turns / flip
     krot(G["hips"], 779, (0, 0, 0))
     krot(F["hips"], 779, (0, 0, 0))
     for f in range(780, 991, 5):
@@ -2171,7 +2171,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
     pose(G, 989, "fly")
     pose(F, 989, "fly")
 
-    # Shot 9: Goku biến mất → hiện sau lưng Frieza → đấm (hit-stop 1030–1045)
+    # Shot 9: Goku vanishes → appears behind Frieza → punch (hit-stop 1030–1045)
     end = chase_path(1.0)
     fr_end = end + Vector((0, 0, 0.5))
     root(F, 992, fr_end, 90)
@@ -2185,11 +2185,11 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
     kvis(body, 1001, False)
     kvis(body, 1012, True)
     root(F, 1012, fr_end, 90)
-    root(G, 1012, fr_end + Vector((-0.8, 0, 0.02 + LEG_DROP)), 90)       # sát sau lưng Frieza, nhìn +X
+    root(G, 1012, fr_end + Vector((-0.8, 0, 0.02 + LEG_DROP)), 90)       # right behind Frieza, facing +X
     pose(G, 1012, "hero")
     root(G, 1026, fr_end + Vector((-0.78, 0, 0.02 + LEG_DROP)), 90)
-    root(G, 1030, fr_end + Vector((-0.5, 0, LEG_DROP)), 90)          # lao tới, nắm đấm chạm mặt Frieza
-    root(F, 1024, fr_end, 270)                                 # Frieza quay lại
+    root(G, 1030, fr_end + Vector((-0.5, 0, LEG_DROP)), 90)          # lunges in, fist hits Frieza's face
+    root(F, 1024, fr_end, 270)                                 # Frieza turns around
     pose(F, 1024, "shock")
     pose(G, 1024, "guard")
     pose(G, 1030, "punch")
@@ -2202,7 +2202,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
     root(G, 1045, fr_end + Vector((-0.5, 0, LEG_DROP)), 90)
     root(G, 1109, fr_end + Vector((-0.7, 0, 0.2)), 90)
 
-    # Shot 10: Frieza rơi xuống biển, Goku lơ lửng
+    # Shot 10: Frieza falls into the sea, Goku hovers
     sp_pos = fr_end + Vector((70, -10, 0))
     sp_pos.z = -0.7
     root(F, 1150, sp_pos + Vector((0, 0, 0.5)), 270, -70)
@@ -2219,51 +2219,51 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         root(G, f, fr_end + Vector((-1.2, 0, 0.2 + 0.06 * math.sin(f / 15))), 90 + (f - 1110) * 0.4)
     pose(G, 1199, "hero", head=(-8, 0, 0))
 
-    # Đuôi Frieza lắc nhẹ suốt clip
+    # Frieza's tail sways gently throughout the clip
     for f in range(0, 1200, 20):
         for i, seg in enumerate(F["tail"]):
             krot(seg, f, (-12 - 6 * math.sin(f / 40 + i * 0.7), 0, 14 * math.sin(f / 33 + i * 0.5)))
 
-    # Biến hình: chớp tóc/mắt 3 nhịp rồi chuyển hẳn
+    # Super Saiyan transformation: hair/eyes flash 3 beats, then switch for good
     kvis(G["ssj"], 0, False)
     kvis(G["base"], 0, True)
     for f0 in (248, 266, 284):
         kvis(G["ssj"], f0, True); kvis(G["base"], f0, False)
         kvis(G["ssj"], f0 + 4, False); kvis(G["base"], f0 + 4, True)
-    # miệng: há khi thét (biến hình) và khi tung cú đấm
+    # mouth: open when screaming (transformation) and when throwing the punch
     kvis(G["mouth_open"], 0, False)
-    kvis(G["mouth"], 0, True)   # key đầu tiên của miệng là "ẩn" ở 292 → thiếu key này thì Goku mất miệng suốt 0–292
+    kvis(G["mouth"], 0, True)   # mouth's first key is "hidden" at 292 → without this key Goku has no mouth for 0–292
     for f0, f1 in ((292, 338), (1026, 1048)):
         kvis(G["mouth_open"], f0, True); kvis(G["mouth"], f0, False)
         kvis(G["mouth_open"], f1, False); kvis(G["mouth"], f1, True)
     kvis(G["ssj"], 300, True)
     kvis(G["base"], 300, False)
     hs = G["hair_ssj"]
-    for f in (240, 296):                       # 3 nhịp chớp SSJ trước đó: tóc gần đủ cỡ, không lộ đầu trọc
+    for f in (240, 296):                       # 3 SSJ flashes before that: hair nearly full size, no bald head showing
         hs.scale = (0.95, 0.95, 0.95); hs.keyframe_insert("scale", frame=f)
     hs.scale = (0.6, 0.6, 0.55); hs.keyframe_insert("scale", frame=300)
     hs.scale = (1.08, 1.08, 1.12); hs.keyframe_insert("scale", frame=306)
     hs.scale = (1, 1, 1); hs.keyframe_insert("scale", frame=316)
     glow = M["hair_ssj"].node_tree.nodes["glow"].outputs[0]
     energy = M["hair_ssj"].node_tree.nodes["energy"].outputs[0]
-    for f, gv, ev in ((299, 0.2, 0.15), (300, 2.2, 1.0), (318, 0.7, 0.6), (334, 0.3, 0.3), (390, 0.05, 0.1)):   # tóc vàng nhạt: glow 3.0 làm trắng bệch cả khối lúc thét; energy thấp để bloom trong app không tẩy trắng tóc
+    for f, gv, ev in ((299, 0.2, 0.15), (300, 2.2, 1.0), (318, 0.7, 0.6), (334, 0.3, 0.3), (390, 0.05, 0.1)):   # pale gold hair: glow 3.0 bleached the whole mass white while screaming; low energy so the in-app bloom doesn't wash out the hair
         glow.default_value, energy.default_value = gv, ev
         glow.keyframe_insert("default_value", frame=f)
         energy.keyframe_insert("default_value", frame=f)
 
-    # lơ lửng: hông nhấp nhô nhẹ khi bay tại chỗ (Frieza chờ trên trời, Goku cuối phim)
+    # hovering: hips bob gently while flying in place (Frieza waiting in the sky, Goku at the end)
     for R_, (f0, f1), h0 in ((F, (0, 700), FRIEZA_DIM["hips"]), (G, (1110, 1199), GOKU_DIM["hips"])):
-        kloc(R_["hips"], max(f0 - 6, 0), Vector((0, 0, h0)))      # trước đó giữ đúng độ cao gốc (chân không lún)
+        kloc(R_["hips"], max(f0 - 6, 0), Vector((0, 0, h0)))      # before that, hold the base height (feet don't sink)
         for f in range(f0, f1 + 1, 6):
             kloc(R_["hips"], f, Vector((0, 0, h0 + 0.035 * math.sin(math.tau * (f - f0) / 96))))
 
-    # ký hiệu anime: Frieza nổi gân 💢 khi thấy Goku biến hình (cận mặt + qua vai), toát mồ hôi khi mất dấu Goku; Goku cười nhếch
+    # anime symbols: Frieza gets a 💢 vein seeing Goku transform (close-up + over-shoulder), sweats on losing Goku; Goku smirks
     an, sw = F["anger"], F["sweat"]
     kvis([an, sw], 0, False)
     kvis([an], 530, True); kvis([an], 602, False)
     kvis([sw], 996, True); kvis([sw], 1030, False)
     kloc(sw, 996, sw.location.copy())
-    kloc(sw, 1028, sw.location + Vector((0, 0, -0.01)))         # giọt mồ hôi trượt xuống
+    kloc(sw, 1028, sw.location + Vector((0, 0, -0.01)))         # sweat drop slides down
     kvis(F["laugh"], 0, False)
     kvis(F["laugh"], 498, True); kvis(F["mouth"], 498, False)
     kvis(F["laugh"], 524, False); kvis(F["mouth"], 524, True)
@@ -2272,19 +2272,19 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         kvis(G["smirk"], f0, True); kvis(G["mouth"], f0, False)
         kvis(G["smirk"], f1, False); kvis(G["mouth"], f1, True)
 
-    # đầu ngón Frieza sáng hồng, phồng lên vài frame trước mỗi phát Death Beam / ki blast
+    # Frieza's fingertip glows pink, swelling a few frames before each Death Beam / ki blast
     ch = F["charge"]
     ch.scale = (0, 0, 0); ch.keyframe_insert("scale", frame=0)
     for fire in beams + [bf - 13 for bf, _ in BLASTS]:
         for f, k in ((fire - 10, 0.0), (fire - 2, 1.0), (fire, 1.5), (fire + 3, 0.0)):
             ch.scale = (k, k, k); ch.keyframe_insert("scale", frame=f)
 
-    # Frieza: mắt mở to hoảng hốt khi mất dấu Goku tới lúc trúng đòn, há miệng khi bị đấm
+    # Frieza: eyes wide in panic from losing track of Goku until the hit, mouth open when punched
     kvis(F["eyes_shock"], 0, False); kvis(F["mouth_open"], 0, False); kvis(F["eyes"], 0, True); kvis(F["mouth"], 0, True)
     kvis(F["eyes_shock"], 1000, True); kvis(F["eyes"], 1000, False)
     kvis(F["mouth_open"], 1000, True); kvis(F["mouth"], 1000, False)
 
-    # giận dần trước khi hét (236→292): mắt cụp mi; vẫn nhường chỗ cho 3 nhịp chớp SSJ
+    # anger builds before the scream (236→292): eyelids lowered; still makes room for the 3 SSJ flashes
     kvis(G["eyes_angry"], 0, False)
     kvis(G["eyes_angry"], 236, True); kvis(G["eyes_base"], 236, False)
     for f0 in (248, 266, 284):
@@ -2292,13 +2292,13 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         kvis(G["eyes_angry"], f0 + 4, True); kvis(G["eyes_base"], f0 + 4, False)
     kvis(G["eyes_angry"], 292, False)
 
-    # hét lúc biến hình: mắt nhắm tịt "> <" (chèn sau các key bật/tắt SSJ để đè lên)
+    # scream during the transformation: eyes squeezed shut "> <" (inserted after the SSJ on/off keys to override them)
     kvis(G["eyes_shut"], 0, False)
     kvis(G["eyes_shut"], 292, True); kvis(G["eyes_base"] + G["eyes_ssj"], 292, False)
     kvis(G["eyes_ssj"], 300, False)
     kvis(G["eyes_shut"], 336, False); kvis(G["eyes_ssj"], 336, True)
 
-    # chớp mắt (4 frame), tránh các đoạn đang đổi nét mặt
+    # blinks (4 frames), avoiding stretches where the expression is changing
     kvis(G["eyes_blink"] + F["eyes_blink"], 0, False)
     for f0, eyes in ((90, G["eyes_base"]), (205, G["eyes_base"]), (445, G["eyes_ssj"]), (640, G["eyes_ssj"]), (1140, G["eyes_ssj"])):
         kvis(G["eyes_blink"], f0, True); kvis(eyes, f0, False)
@@ -2307,31 +2307,31 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         kvis(F["eyes_blink"], f0, True); kvis(eyes, f0, False)
         kvis(F["eyes_blink"], f0 + 4, False); kvis(eyes, f0 + 4, True)
 
-    # ── nét mặt theo nhịp truyện (sau mọi key ở trên để đè lên cùng frame) ──
-    # Goku: mày đen cau lại khi giận dần (236→300), vẫn nhường 3 nhịp chớp SSJ; má hồng chỉ lúc còn hiền (0→236)
+    # ── facial expressions following the story beats (after all keys above so they override on the same frame) ──
+    # Goku: black brows furrow as anger builds (236→300), leaving room for the 3 SSJ flashes; blush only while gentle (0→236)
     brA, brB = G["brows_angry"], [o for o in G["base"] if o.name.startswith("goku_brow_")]
     kvis(brA, 0, False); kvis(brA, 236, True); kvis(brB, 236, False)
     for f0 in (248, 266, 284):
         kvis(brA, f0, False); kvis(brA, f0 + 4, True); kvis(brB, f0 + 4, False)
     kvis(brA, 300, False)
     kvis(G["blush"], 0, True); kvis(G["blush"], 236, False)
-    # Goku đánh combo (705→780) và cú đấm sau lưng (1012→1048): nghiến răng, hét khi tung đòn, mắt SSJ hẹp lại
+    # Goku's combo (705→780) and the punch from behind (1012→1048): gritted teeth, shouting when striking, SSJ eyes narrowed
     kvis(G["grit"] + G["eyes_fierce"], 0, False)
     for f0, f1 in ((705, 744), (762, 780), (1012, 1026)):
         kvis(G["grit"], f0, True); kvis(G["mouth"], f0, False)
         kvis(G["grit"], f1, False)
-    kvis(G["mouth"], 780, True)                 # 744 và 1026 nối thẳng sang miệng hét (key bên dưới / ở trên)
-    kvis(G["grit"], 236, True); kvis(G["mouth"], 236, False)   # gồng Ki: nghiến răng đi cùng mày giận (trước đó vẫn cười)
-    kvis(G["grit"], 292, False)                 # 292 nối thẳng sang miệng thét biến hình
+    kvis(G["mouth"], 780, True)                 # 744 and 1026 lead straight into the shouting mouth (key below / above)
+    kvis(G["grit"], 236, True); kvis(G["mouth"], 236, False)   # power up Ki: gritted teeth with the angry brows (smiling before that)
+    kvis(G["grit"], 292, False)                 # 292 leads straight into the transformation-scream mouth
     for f0, f1 in ((744, 762),):
         kvis(G["mouth_open"], f0, True); kvis(G["mouth"], f0, False)
         kvis(G["mouth_open"], f1, False)
     for f0, f1 in ((742, 764), (1026, 1048)):
         kvis(G["eyes_fierce"], f0, True); kvis(G["eyes_ssj"], f0, False)
         kvis(G["eyes_fierce"], f1, False); kvis(G["eyes_ssj"], f1, True)
-    # cuối phim: Goku SSJ cười nhếch tự tin
+    # end of the film: SSJ Goku smirks confidently
     kvis(G["smirk"], 1118, True); kvis(G["mouth"], 1118, False)
-    # Frieza: cười "ho ho ho" nhắm mắt khinh khỉnh; khựng lại khi Goku biến hình rồi giận (nghiến răng) tới hết loạt Death Beam
+    # Frieza: smug "ho ho ho" with eyes closed; freezes as Goku transforms, then angry (gritted teeth) through the Death Beam barrage
     kvis(F["eyes_blink"], 501, True); kvis(F["eyes"], 501, False)
     kvis(F["eyes_blink"], 521, False)
     kvis(F["eyes_angry"] + F["eyes_hit"] + F["snarl"] + F["pain"], 0, False)
@@ -2341,14 +2341,14 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
     kvis(F["mouth_open"], 532, False); kvis(F["snarl"], 532, True)
     kvis(F["snarl"], 566, False); kvis(F["mouth"], 566, True)
     kvis(F["eyes_angry"], 700, False); kvis(F["eyes"], 700, True)
-    # Frieza trúng đòn (1030): nhắm nghiến, miệng méo; giữ tới lúc rơi xuống biển
+    # Frieza hit (1030): eyes squeezed shut, mouth twisted; held until he falls into the sea
     kvis(F["eyes_hit"], 1030, True); kvis(F["eyes_shock"], 1030, False)
     kvis(F["pain"], 1030, True); kvis(F["mouth_open"], 1030, False)
-    # shot 10 bật mọi fr_* ở 1150 (frame rơi xuống biển): chỉ giữ đúng nét trúng đòn, các nét khác vẫn ẩn
+    # shot 10 enables every fr_* at 1150 (sea-fall frame): keep only the hit expression, other expressions stay hidden
     kvis(F["eyes"] + F["eyes_blink"] + F["eyes_shock"] + F["eyes_angry"] + F["mouth"] + F["laugh"] + F["mouth_open"]
          + F["snarl"], 1150, False)
 
-    # tóc đen rung dần lên khi gồng khí (140→300), dựng nhẹ lên trước lúc biến hình
+    # black hair shakes harder while powering up Ki (140→300), lifting slightly before the transformation
     hb = [o for o in G["base"] if o.name == "goku_hair_base"][0]
     rng0 = random.Random(5)
     for f in range(130, 301, 3):
@@ -2359,20 +2359,20 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         hb.scale = (1 + 0.03 * k, 1 + 0.03 * k, 1 + 0.06 * k)
         hb.keyframe_insert("scale", frame=f)
 
-    # tóc rung trong luồng khí: mạnh lúc vừa biến hình, nhẹ dần nhưng không tắt hẳn
+    # hair shakes in the Ki flow: strong right after the transformation, easing off but never stopping completely
     rng = random.Random(11)
     for f in range(300, 1200, 3):
         amp = 3.2 if f < 420 else (1.6 if f < 780 else 1.0)
-        back = -12.0 if 784 <= f <= 986 else 0.0          # bay: gió hất tóc ra sau
+        back = -12.0 if 784 <= f <= 986 else 0.0          # flying: wind blows the hair back
         hs.rotation_euler = (rad(rng.uniform(-amp, amp) + back), rad(rng.uniform(-amp, amp)), rad(rng.uniform(-amp, amp) * 0.5))
         hs.keyframe_insert("rotation_euler", frame=f)
 
-    # Vết nứt lan + debris bay lên rồi văng ra
+    # Cracks spread + debris lifts up then flies off
     for piv, length in cracks:
         piv.scale = (1, 0.001, 1); piv.keyframe_insert("scale", frame=140)
         piv.scale = (1, length * 0.45, 1); piv.keyframe_insert("scale", frame=239)
         piv.scale = (1.0, length, 1); piv.keyframe_insert("scale", frame=310)
-    # v25: khe nứt rực sáng khi gồng, loé mạnh lúc nổ biến hình rồi nguội dần thành khe tối ánh than hồng (không sáng mãi)
+    # v25: cracks glow while powering up, flare at the transformation blast, then cool to dark ember cracks (not glowing forever)
     cn = M["crack"].node_tree.nodes
     cem = next(n for n in cn if n.type == "EMISSION" and not n.inputs["Strength"].is_linked)
     for f, col, st, en in ((300, "#FFD45C", 1.2, 0.6), (330, "#FFF0A8", 1.6, 0.95), (420, "#F0A040", 1.0, 0.3),
@@ -2380,8 +2380,8 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         cem.inputs["Color"].default_value = hexc(col); cem.inputs["Color"].keyframe_insert("default_value", frame=f)
         cem.inputs["Strength"].default_value = st; cem.inputs["Strength"].keyframe_insert("default_value", frame=f)
         cn["energy"].outputs[0].default_value = en; cn["energy"].outputs[0].keyframe_insert("default_value", frame=f)
-    # v25: khí nhấc đá lơ lửng, vụ nổ biến hình (frame 296) hất văng → bay theo đường đạn (g = 9.8 m/s², 60 fps), chạm đất
-    # nảy vài lần mất dần năng lượng rồi nằm yên trên cỏ (trước: key tay, đá cắm xuống dưới mặt đất ở frame 420)
+    # v25: Ki lifts rocks, the transformation blast (frame 296) flings them → ballistic flight (g = 9.8 m/s², 60 fps), landing,
+    # bounce a few times losing energy, then rest on the grass (before: hand keys, rocks stuck below the ground at frame 420)
     rng_d = random.Random(909)
     rng_h = random.Random(919)
     g_acc, T_BURST = 9.8 / 60.0 ** 2, 296
@@ -2391,7 +2391,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         dirv = Vector((math.cos(a), math.sin(a), 0))
         p0 = Vector((math.cos(a) * r, math.sin(a) * r, rr))
         lift = random.uniform(0.6, 2.8)
-        for _ in range(4):                          # giữ đúng số lần gọi random cũ (5/hòn) → không xáo các vật ngẫu nhiên phía sau
+        for _ in range(4):                          # keep the old random call count (5/rock) → later random objects don't reshuffle
             random.random()
         kloc(d, 120, p0)
         krot(d, 120, (0, 0, 0))
@@ -2399,7 +2399,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         kloc(d, 290, hover)
         rot = Vector((rng_d.uniform(-30, 30), rng_d.uniform(-30, 30), rng_d.uniform(-50, 50)))
         krot(d, 290, rot)
-        # v30 đá bị khí nâng không bay êm: rung lắc + nhấp nhô trong trường khí, càng gần lúc nổ càng dữ (RNG riêng)
+        # v30 rocks lifted by Ki don't float smoothly: shake + bob in the Ki field, wilder closer to the blast (own RNG)
         ph = rng_h.uniform(0, math.tau)
         for ff in range(132, 290, 6):
             t = (ff - 120) / 170
@@ -2420,8 +2420,8 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
                 vel.z -= g_acc
                 pos += vel
                 rot += w
-                if pos.z < rr:                      # chạm đất: nảy lại (hệ số hồi phục 0.35), ma sát cỏ hãm trượt + xoay
-                    if land is None and -vel.z > 0.03:   # lần chạm đất đầu: bụi đất bung lên
+                if pos.z < rr:                      # ground contact: bounce (restitution 0.35), grass friction damps sliding + spin
+                    if land is None and -vel.z > 0.03:   # first ground contact: dust puffs up
                         land = (f, Vector((pos.x, pos.y, 0.02)), -vel.z)
                     pos.z = rr
                     vel.z = -vel.z * 0.35
@@ -2442,9 +2442,9 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
                     kp.interpolation = "LINEAR"
         if land:
             lf, lp, vz = land
-            scene.timeline_markers.new("sfx:thud", frame=int(lf))   # synth_audio: tiếng đá rơi bịch đúng frame chạm đất
+            scene.timeline_markers.new("sfx:thud", frame=int(lf))   # synth_audio: rock thud exactly on the landing frame
             bm = bmesh.new()
-            for _ in range(4):                      # cụm 4 cục bụi tròn lệch nhau
+            for _ in range(4):                      # cluster of 4 offset round dust puffs
                 tmp = bmesh.new()
                 bmesh.ops.create_icosphere(tmp, subdivisions=2, radius=rng_d.uniform(0.6, 1.0))
                 off = Vector((rng_d.uniform(-0.7, 0.7), rng_d.uniform(-0.7, 0.7), rng_d.uniform(0.0, 0.5)))
@@ -2461,12 +2461,12 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
                 pf.location = lp + Vector((0, 0, z)); pf.keyframe_insert("location", frame=lf + o)
             kvis([pf], lf + 31, False)
 
-    # v28 vòng bụi sóng xung kích: nổ biến hình hất bụi mặt đất thành vòng cuộn toả ra ngoài, chậm dần vì lực cản
-    # không khí (r = r0 + R·(1 − e^(−t/τ))), bốc lên nhẹ rồi tan; RNG riêng để không xô lệch chuỗi random chung
+    # v28 shockwave dust ring: the transformation blast whips ground dust into a rolling ring spreading out, slowing from air
+    # drag (r = r0 + R·(1 − e^(−t/τ))), rising slightly then dissipating; own RNG so the shared random sequence isn't shifted
     rng_b = random.Random(4242)
     coll = next((o.users_collection[0] for o in bpy.data.objects if o.name.startswith("dust_")), scene.collection)
-    # bụi phẳng 2 tông theo góc nhìn (lõi sáng, mép sẫm), không viền; tan bằng cách vỡ vụn theo nhiễu khi alpha màu
-    # object giảm (toon có viền trước trông như tảng đá xám)
+    # flat 2-tone dust by view angle (bright core, dark edge), no outline; crumbles away with noise as the object colour
+    # alpha drops (toon with outline used to look like grey boulders)
     bd_m = bpy.data.materials.new("burst_dust")
     bd_m.use_nodes = True
     N, L = bd_m.node_tree.nodes, bd_m.node_tree.links
@@ -2505,7 +2505,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         kvis([pf], 0, False); kvis([pf], T_BURST + 1, True)
         for t in (1, 4, 8, 14, 22, 32, 46, 62, 80):
             r = 0.9 + R_ * (1 - math.exp(-t / tau))
-            k_ = min(1.0, t / 14) * (1.0 if t < 46 else max(0.0, 1 - (t - 46) / 34))   # nở ra rồi tan
+            k_ = min(1.0, t / 14) * (1.0 if t < 46 else max(0.0, 1 - (t - 46) / 34))   # expand then dissipate
             pf.location = out * r + Vector((0, 0, 0.1 + 0.55 * (1 - math.exp(-t / 30))))
             pf.keyframe_insert("location", frame=T_BURST + t)
             pf.scale = (sz * (0.3 + 0.9 * k_) * (1 + t / 60),) * 2 + (sz * (0.3 + 0.9 * k_) * (0.9 + t / 80),)
@@ -2516,7 +2516,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
             pf.keyframe_insert("color", index=3, frame=T_BURST + t)
         kvis([pf], T_BURST + 81, False)
 
-    # Trời chuyển giông, mặt trời dịu
+    # The sky turns stormy, the sun softens
     s = storm.inputs[0]
     for f, v in ((0, 0.25), (240, 1.0)):
         s.default_value = v
@@ -2531,7 +2531,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
             dv.default_value = v
             dv.keyframe_insert("default_value", frame=f)
 
-    # ── Track FX (đọc bởi bake_timeline.py) ──
+    # ── FX tracks (read by bake_timeline.py) ──
     T = {k: [] for k in ("aura", "flash", "shake", "punch", "speedlines", "impact", "grade",
                          "lightning", "shock_r", "shock_k", "title", "timescale", "beam", "blast")}
 
@@ -2563,7 +2563,7 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         key("punch", f0 - 1, 0); key("punch", f0, 0.05); key("punch", f0 + 8, 0)
     for bf in beams:
         key("punch", bf - 1, 0); key("punch", bf, 0.04); key("punch", bf + 8, 0)
-    for f0, amt in ((719, 0.05), (747, 0.08)):           # đòn chạm trong combo
+    for f0, amt in ((719, 0.05), (747, 0.08)):           # hits landing in the combo
         key("punch", f0 - 1, 0); key("punch", f0, amt); key("punch", f0 + 8, 0)
     key("punch", 1029, 0); key("punch", 1030, 0.12); key("punch", 1045, 0.12); key("punch", 1060, 0)
     key("speedlines", 0, 0); key("speedlines", 299, 0); key("speedlines", 300, 1); key("speedlines", 335, 0)
@@ -2598,19 +2598,19 @@ def choreograph(G, F, fx, sun, auras, storm, cracks, debris, splash):
         for kp in fc.keyframe_points:
             kp.interpolation = "CONSTANT" if name in step_tracks else "LINEAR"
 
-    # Đèn aura bám track aura
+    # Aura light follows the aura track
     for d in auras:
         for f, v in sorted(T["aura"]):
             d.energy = 55 * v
             d.keyframe_insert("energy", frame=f)
 
-    # Đích của Death Beam & ki blast
+    # Targets for the Death Beam & ki blasts
     bt = bpy.data.objects["BEAM_TARGET"]
     offs = [(0.35, 0.1), (-0.32, 0.05), (0.3, 0.12), (-0.3, 0.0), (0.28, 0.15), (-0.33, 0.08)]
     for bf, (ox, oz) in zip(beams, offs):
         kloc(bt, bf - 1, Vector((ox, -0.3, 1.25 + oz)))
     constant(bt)
-    # ki blast trượt, nổ sát bên Goku (máy truy đuổi nhìn lùi nên điểm nổ phải ở cạnh/sau Goku mới vào khung)
+    # ki blasts miss, exploding beside Goku (chase camera looks back, so the blast must be beside/behind Goku to be in frame)
     bp = bpy.data.objects["BLAST_POINT"]
     for k, (bf, _) in enumerate(BLASTS):
         g = (bf - 780) / 210 * 0.95 + 0.02
@@ -2663,7 +2663,7 @@ def orbit(center, radius, ang, height):
 
 
 def cam_for(f, A):
-    """(eye, target, focal mm, roll độ) cho frame f. A: vị trí world của các anchor."""
+    """(eye, target, focal mm, roll degrees) for frame f. A: world positions of the anchors."""
     gc, gh, fh, fc = A["gc"], A["gh"], A["fh"], A["fc"]
     if f < 120:                                   # 1. drone dolly-in
         t = ease(f / 119)
@@ -2673,9 +2673,9 @@ def cam_for(f, A):
     if f < 240:                                   # 2. low-angle orbit quanh Goku
         t = (f - 120) / 119
         return orbit(gc, 2.2, lerp(70, 110, t), -0.55), gc + Vector((0, 0, 0.2)), 32, lerp(-4, 4, t)
-    if f < 300:                                   # 3. cận mắt, 4 frame cuối crash zoom
+    if f < 300:                                   # 3. eye close-up, crash zoom in the last 4 frames
         t = (f - 240) / 59
-        # crash zoom dừng ở cỡ mặt vẫn thấy đủ hai mắt + miệng (trước đây lao tới 0.7 m: mặt thành mảng da phẳng)
+        # crash zoom stops where both eyes + mouth still fit (before, it rushed to 0.7 m: the face became a flat skin patch)
         d = lerp(1.6, 1.42, t) if f < 296 else lerp(1.42, 1.22, (f - 295) / 4)
         fwd = (A["gface"] - gh).normalized()
         return gh + fwd * d + Vector((0.02, 0, 0.0)), gh + Vector((0, 0, -0.03)), 85, 0
@@ -2684,23 +2684,23 @@ def cam_for(f, A):
         t2 = ease((f - 308) / 81)
         d = lerp(0.8, 3.3, t) + 1.1 * t2
         focal = lerp(135, 28, t)
-        # máy thấp kiểu hero nhưng luôn ở trên mặt cỏ (~0.3 m): trước đây z = ngực − 0.7 ≈ −0.02 → máy nằm dưới đất,
-        # nửa giữa khung là mặt dưới khối đất (dải xanh đục) và chỉ thấy đế giày Goku
+        # low hero-style camera, always above the grass (~0.3 m): before, z = chest − 0.7 ≈ −0.02 → camera below ground,
+        # the middle of the frame was the underside of the ground block (murky green band) and only Goku's soles showed
         return gc + Vector((-0.35 * d, 0.92 * d, -0.13 * t - 0.25)), gc + Vector((0, 0, 0.3 * t)), focal, lerp(0, -6, t)
     if f < 510:                                   # 5. orbit 180° → hero low-angle
         t = ease((f - 390) / 119)
         return orbit(gc, lerp(3.3, 2.6, t), lerp(-60, 115, t), lerp(0.45, -0.5, t)), gc + Vector((0, 0, 0.25)), lerp(35, 28, t), 0
-    if f < 550:                                   # 6a. dolly zoom vào mặt Frieza
+    if f < 550:                                   # 6a. dolly zoom onto Frieza's face
         t = ease((f - 510) / 39)
         d = lerp(1.1, 4.4, t)
         return fh + Vector((0.05, -d, 0.02)), fh, 30 * d / 1.1, 0
-    if f < 600:                                   # 6b. qua vai Frieza nhìn Goku
+    if f < 600:                                   # 6b. over Frieza's shoulder looking at Goku
         t = (f - 550) / 49
-        return fh + Vector((lerp(0.24, 0.2, t), 0.55, 0.07)), gc + Vector((0, 0, 0.25)), lerp(62, 68, t), 0   # tele nén khoảng cách
+        return fh + Vector((lerp(0.24, 0.2, t), 0.55, 0.07)), gc + Vector((0, 0, 0.25)), lerp(62, 68, t), 0   # telephoto compression
     if f < 690:                                   # 7a. bullet-time orbit 90°
         t = ease((f - 600) / 89)
         return orbit(gh, 1.8, lerp(35, 125, t), 0.12), gh + Vector((0, 0, -0.12)), 35, 0
-    if f < 780:                                   # 7b. Frieza lao tới (qua vai Goku), rồi combo ngang, kết bằng whip pan
+    if f < 780:                                   # 7b. Frieza charges (over Goku's shoulder), then side-on combo, ends in a whip pan
         mid = (gc + fc) / 2
         t = (f - 690) / 89
         eye = mid + Vector((lerp(3.6, 3.0, t), lerp(-1.1, 0.4, t), 0.3))
@@ -2712,33 +2712,33 @@ def cam_for(f, A):
             w = ease((f - 768) / 11)
             tgt = mid + Vector((0, -w * 6.0, w * 1.5))
         return eye, tgt, 32, 0
-    if f < 990:                                   # 8. bám đuôi truy đuổi
+    if f < 990:                                   # 8. tailing chase
         u = (f - 780) / 210
         p = chase_path(max(u * 0.95 - 0.035, 0.0))
         tang = (chase_path(min(u + 0.01, 1)) - chase_path(max(u - 0.01, 0))).normalized()
         curv = (chase_path(min(u + 0.03, 1)) - 2 * chase_path(u) + chase_path(max(u - 0.03, 0))).y
-        # bay trước mặt Goku, nhìn lùi lại: thấy mặt Goku né và Frieza đuổi phía sau (đường bay không đụng cột đá)
+        # in front of Goku looking back: Goku dodging and Frieza chasing behind (flight path avoids the rock spires)
         ahead = chase_path(min(u * 0.95 + 0.055, 1.0))
         eye = ahead + Vector((0, 0, 0.5)) + Vector((-tang.y, tang.x, 0)).normalized() * 0.7
         return eye, gc * 0.72 + fc * 0.28, 30, max(-14.0, min(14.0, -curv * 60))
-    if f < 1012:                                  # 9a. Frieza mất dấu Goku: đẩy máy vào mặt hoảng hốt
+    if f < 1012:                                  # 9a. Frieza loses track of Goku: push in on his panicked face
         t = ease((f - 990) / 21)
         return fh + Vector((lerp(1.8, 1.25, t), -0.55, 0.06)), fh + Vector((0, 0, -0.08)), 40, lerp(0, -4, t)
-    if f < 1030:                                  # 9b. Goku hiện sau lưng
+    if f < 1030:                                  # 9b. Goku appears behind him
         t = (f - 1012) / 17
         mid = (gc + fc) / 2
         return mid + Vector((0.2, -3.8 + t * 0.4, 0.3)), mid, 32, 0
-    if f < 1110:                                  # 9c. crash zoom vào điểm va chạm, theo Frieza văng
+    if f < 1110:                                  # 9c. crash zoom onto the impact, following Frieza as he flies off
         t = ease((f - 1030) / 5)
         hit = A["gf"]
         if f < 1046:
             return hit + Vector((0.25, lerp(-2.6, -1.8, t), 0.25)), hit, lerp(30, 45, t), lerp(0, 6, t)
-        t3 = ease((f - 1046) / 20)                # qua vai Goku nhìn Frieza văng đi xa
+        t3 = ease((f - 1046) / 20)                # over Goku's shoulder watching Frieza fly off into the distance
         dirv = (fc - gc).normalized() if (fc - gc).length > 0.5 else Vector((1, 0, 0))
         eye = gc - dirv * 2.3 + Vector((0, -0.55, 0.35))
         tgt = lerp(hit, gc + dirv * 2.6 + Vector((0, 0, -0.1)), t3)
         return eye, tgt, lerp(34, 30, t3), lerp(4, 0, t3)
-    t = ease((f - 1110) / 89)                     # 10. lùi máy hạ thấp: Goku hiên ngang trên nền trời giông
+    t = ease((f - 1110) / 89)                     # 10. pull back and lower: Goku stands tall against the stormy sky
     return gc + lerp(Vector((1.7, -0.9, 0.45)), Vector((2.4, 0.15, -0.8)), t), gc + lerp(Vector((0, 0, 0.1)), Vector((0, 0, 0.5)), t), lerp(35, 28, t), lerp(0, 3, t)
 
 
@@ -2781,23 +2781,23 @@ def build_camera():
                 kp.interpolation = "LINEAR"
 
 
-# ── nhân vật: cel 3 tông + viền sáng màu + đốm bóng anime (hậu kỳ trên các material toon của GOKU/FRIEZA) ──
+# ── characters: 3-tone cel + coloured rim light + anime specular (post pass on GOKU/FRIEZA toon materials) ──
 RIM_GOKU, RIM_GOKU_SSJ, RIM_FRIEZA = "#E4F4FF", "#FFE07A", "#F0E6FF"
 AO_DIST, AO_CUT, OCC_DOWN = 0.05, 0.4, 0.6
 THR = 0.22
 HI = 1.35
 RIM_EDGE = 0.6
-KEY_DIR = Vector((-0.6, 0.5, 0.62)).normalized()   # hướng tới char_key trong không gian camera: trái-trên, chếch về trước
-# (name: occ = tông thứ 3 ở khe/ hõm (AO), rim = độ mạnh viền sáng, spec = đốm bóng, spec_col)
+KEY_DIR = Vector((-0.6, 0.5, 0.62)).normalized()   # direction to char_key in camera space: upper-left, angled forward
+# (name: occ = 3rd tone in crevices/ hollows (AO), rim = rim light strength, spec = specular highlight, spec_col)
 CHAR_SHADE = {
     "skin": dict(hi=HI, occ="#C97C62", rim=0.5),
-    # v27 mặt chibi tròn, đèn key cao → nửa mặt dưới mắt rơi vào vùng tối (thr 0.1) thành mảng loang ngang má, lại thêm
-    # tông thứ 3 (úp xuống) → bỏ occ, hạ ngưỡng tối để chỉ mép quay hẳn đi mới tối; rim 0.4 phủ quai hàm + cổ khi quay từ dưới
+    # v27 round chibi face, high key light → below the eyes fell into shadow (thr 0.1) as a blotch across the cheeks, plus
+    # 3rd tone (facing down) → no occ, lower threshold so only edges facing fully away go dark; rim 0.4 lit jaw + neck from below
     "goku_skin_face": dict(thr=0.025, rim=0.12),
     "goku_neck_skin": dict(thr=0.1, rim=0.0),
     "goku_ear_in": dict(occ="#B86A55", rim=0.0),
     "gi": dict(hi=HI, occ="#9E3A12", rim=0.8),
-    # vải/giày xanh: viền sáng xanh tươi riêng (trộn với viền vàng SSJ thành dải xám be quanh đai, băng cổ tay)
+    # blue cloth/boots: own bright blue rim (the gold SSJ rim mixed in gave a beige-grey band on the belt and wristbands)
     "blue": dict(hi=HI, occ="#101F5A", rim=0.7, rim_col="#7C98FF"),
     "gd_blue_dk": dict(hi=HI, occ="#0C1748", rim=0.6, rim_col="#5E78E0"),
     "goku_boot": dict(hi=HI, occ="#0A1240", rim=0.6, spec=0.6, spec_col="#9DB4FF", rim_col="#6A84EA"),
@@ -2805,13 +2805,13 @@ CHAR_SHADE = {
     "goku_rope": dict(hi=HI, occ="#8A6224", rim=0.5),
     "go_red": dict(hi=HI, occ="#5E0E14", rim=0.5),
     "white": dict(occ="#9EA6C4", rim=0.3),
-    # v26 tông sáng thứ 3 (xám lam) ở mặt đón đèn + đốm bóng rõ hơn → các lọn đen tách khối như tóc đen anime
-    "hair": dict(thr=0.35, hi=0.82, occ="#050507", rim=0.0, spec=0.38, spec_col="#767986"),  # v28 đen trung tính như ảnh mẫu (trước ngả xanh navy); rim 0.1 thành vòng cung xám như băng đô trên mái khi quay từ dưới
-    "hair_ssj": dict(thr=0.3, hi=2.0, occ="#C77A1E", root="#E9A53E", rim=0.6, spec=0.35, spec_col="#FFF6CC"),  # đốm bóng 0.6 thành vệt bầu dục trắng trên chỏm trước trán
+    # v26 3rd bright tone (blue-grey) facing the light + clearer specular → black locks separate like anime black hair
+    "hair": dict(thr=0.35, hi=0.82, occ="#050507", rim=0.0, spec=0.38, spec_col="#767986"),  # v28 neutral black like the reference image (before, leaning navy); rim 0.1 became a grey arc like a headband on the bangs from below
+    "hair_ssj": dict(thr=0.3, hi=2.0, occ="#C77A1E", root="#E9A53E", rim=0.6, spec=0.35, spec_col="#FFF6CC"),  # specular 0.6 became a white oval streak on the cap above the forehead
     "f_white": dict(occ="#B4A6D6", rim=0.8),
     "fr_neck_skin": dict(occ="#B4A6D6", rim=0.3),
     "fr_face": dict(thr=0.06, occ="#DDD3EE", rim=0.5),
-    "f_purple": dict(occ="#3A1258", rim=0.8, rim_col="#C98AF2"),   # đốm bóng: decal frieza_details.py; viền sáng tím tươi (gần trắng làm mép giáp bạc màu)
+    "f_purple": dict(occ="#3A1258", rim=0.8, rim_col="#C98AF2"),   # specular: frieza_details.py decal; bright purple rim (near-white made the armour edges look faded)
     "fr_gem": dict(occ="#4A1470", rim=0.9),
     "fr_rim": dict(occ="#5E2C88", rim=0.6),
     "fr_ear_hole": dict(occ="#2A1E40", rim=0.0),
@@ -2819,8 +2819,8 @@ CHAR_SHADE = {
 
 
 def char_key_light():
-    """Đèn key cho nhân vật gắn theo camera (chiếu từ trên-trái khung hình), chỉ chiếu GOKU/FRIEZA (light linking):
-    shot nào nhân vật cũng sáng rõ kiểu anime. Mặt trời thế giới chỉ chiếu cảnh nhưng vẫn đổ bóng nhân vật xuống đất."""
+    """Character key light attached to the camera (from the frame's upper left), lighting only GOKU/FRIEZA (light linking):
+    every shot lights the characters clearly, anime-style. The world sun lights only the scene but still casts their ground shadows."""
     world = bpy.data.collections.new("LL_world_sun")
     world.children.link(C_ENV)
     bpy.data.objects["key_sun"].light_linking.receiver_collection = world
@@ -2835,13 +2835,13 @@ def char_key_light():
     ob.parent = scene.camera
     ob.rotation_euler = KEY_DIR.to_track_quat("Z", "Y").to_euler()
     ob.light_linking.receiver_collection = chars
-    # chỉ chính nhân vật đổ bóng của đèn key (tóc lên trán, cằm xuống cổ); cây/mây/cột đá không làm nhân vật tối thui
+    # only the characters cast key-light shadows (hair on forehead, chin on neck); trees/clouds/spires don't black them out
     ob.light_linking.blocker_collection = chars
 
 
 def char_shading():
-    """Chạy sau extras: nâng mọi material toon gắn trên GOKU/FRIEZA lên kiểu FighterZ — tông thứ 3 (AO) ở khe,
-    viền sáng màu theo nhân vật ở mép đối diện đèn key (Goku chuyển ấm khi SSJ), đốm bóng gắt theo nửa-vector của key."""
+    """Runs after extras: upgrades every toon material on GOKU/FRIEZA to FighterZ style — 3rd tone (AO) in crevices,
+    character-coloured rim on the edge away from the key (Goku turns warm in SSJ), hard specular from the key half-vector."""
     owners = {}
     for cn in ("GOKU", "FRIEZA"):
         for ob in bpy.data.collections[cn].all_objects:
@@ -2849,8 +2849,8 @@ def char_shading():
                 m = ms.material
                 if m and m.use_nodes and "glow" in m.node_tree.nodes and any(n.type == "VALTORGB" for n in m.node_tree.nodes):
                     owners.setdefault(m, cn)
-    # viền inverted-hull là vỏ kín bao quanh vật: nếu đổ bóng nó che chính vật → cả nhân vật chìm trong tông tối.
-    # Vỏ có pháp tuyến lật nên bật backface culling cho bóng là vỏ thôi che đèn (chỉ cho nhân vật; cảnh giữ nguyên)
+    # the inverted-hull outline is a closed shell: if it casts shadows it shades the object itself → the whole character goes dark.
+    # The shell has flipped normals, so shadow backface culling stops it blocking light (characters only; scene unchanged)
     ol_char = None
     for cn in ("GOKU", "FRIEZA"):
         for ob in bpy.data.collections[cn].all_objects:
@@ -2865,7 +2865,7 @@ def char_shading():
                     ol_char.name = "outline_char"
                     ms.material = lm = ol_char
                 lm.use_backface_culling_shadow = True
-    # không gian "Camera" của Vector Transform: X phải, Y lên, Z hướng VÀO cảnh (mặt nhìn thấy có z < 0)
+    # Vector Transform "Camera" space: X right, Y up, Z points INTO the scene (visible faces have z < 0)
     H = (Vector((KEY_DIR.x, KEY_DIR.y, -KEY_DIR.z)) + Vector((0, 0, -1))).normalized()
     for m, cn in owners.items():
         cfg = CHAR_SHADE.get(m.name, {})
@@ -2876,7 +2876,7 @@ def char_shading():
         if "thr" in cfg or THR:
             ramp.color_ramp.elements[1].position = cfg.get("thr", THR)
         els = ramp.color_ramp.elements
-        if len(els) > 2 and "hi" in cfg:          # dải sáng thứ 3 chỉ khi ánh khí hắt mạnh, không phủ cả người
+        if len(els) > 2 and "hi" in cfg:          # 3rd bright band only under strong Ki glow, not covering the whole body
             els[2].position = cfg["hi"]
         color = ramp.outputs["Color"]
         geo = N.new("ShaderNodeNewGeometry")
@@ -2909,15 +2909,15 @@ def char_shading():
                 L.new(target, mx.inputs[7])
             return mx.outputs[2]
 
-        # 0) tóc: gốc mỗi lọn + chỏm (thuộc tính "hsh" của goku_blade/shell) và khe giữa các lọn (AO) luôn tông cam
-        #     dù ở mặt sáng → khối tóc xếp lớp có chiều sâu, nhìn từ sau không thành một mảng vàng phẳng
+        # 0) hair: root of each lock + cap ("hsh" attribute of goku_blade/shell) and gaps between locks (AO) are always orange
+        #     even on the lit side → the layered hair mass has depth, from behind it isn't one flat yellow patch
         if cfg.get("root"):
             at = N.new("ShaderNodeAttribute"); at.attribute_name = "hsh"
             under = mth("GREATER_THAN", at.outputs["Fac"], 0.02)
             ao2 = N.new("ShaderNodeAmbientOcclusion"); ao2.inputs["Distance"].default_value = cfg.get("root_ao", 0.03)
             under = mth("MAXIMUM", under, mth("LESS_THAN", ao2.outputs["AO"], cfg.get("root_cut", 0.55)))
             color = mix(color, under, hexc(cfg["root"]))
-        # 1) tông thứ 3 (bóng sâu): trong vùng tối, mặt úp xuống (dưới cằm, nách, dưới tóc/vạt áo) + khe hẹp (AO đậm)
+        # 1) 3rd tone (deep shadow): in shadow, downward faces (under chin, armpits, under hair/hem) + tight crevices (strong AO)
         if cfg.get("occ"):
             s2r = next(n for n in N if n.type == "SHADERTORGB")
             bw = N.new("ShaderNodeRGBToBW"); L.new(s2r.outputs["Color"], bw.inputs[0])
@@ -2927,7 +2927,7 @@ def char_shading():
             crease = mth("LESS_THAN", ao.outputs["AO"], AO_CUT)
             occ = mth("MAXIMUM", mth("MULTIPLY", dark, down), mth("MULTIPLY", dark, crease))
             color = mix(color, occ, hexc(cfg["occ"]))
-        # 2) viền sáng: mép bóng (Facing) ở phía đối diện key (phải-trên khung hình), màu theo nhân vật
+        # 2) rim light: Facing-based edge on the side opposite the key (upper right of frame), colour per character
         if cfg.get("rim", 0) > 0:
             lw = N.new("ShaderNodeLayerWeight"); lw.inputs["Blend"].default_value = 0.5
             edge = mth("GREATER_THAN", lw.outputs["Facing"], RIM_EDGE)
@@ -2937,7 +2937,7 @@ def char_shading():
                 color = mix(color, fac, hexc(cfg["rim_col"]))
             elif cn == "GOKU":
                 ssj = N.new("ShaderNodeValue"); ssj.name = "ssj"
-                for f, v in ((0, 0.0), (300, 1.0)):          # viền ấm vàng từ lúc biến hình SSJ (frame 300)
+                for f, v in ((0, 0.0), (300, 1.0)):          # warm gold rim from the SSJ transformation onward (frame 300)
                     ssj.outputs[0].default_value = v
                     ssj.outputs[0].keyframe_insert("default_value", frame=f)
                 for fc in _fcurves(nt.animation_data):
@@ -2950,7 +2950,7 @@ def char_shading():
                 color = mix(color, fac, rc.outputs[2])
             else:
                 color = mix(color, fac, hexc(RIM_FRIEZA))
-        # 3) đốm bóng gắt: N·H (nửa-vector key/camera) qua ngưỡng
+        # 3) hard specular: N·H (key/camera half-vector) over a threshold
         if cfg.get("spec", 0) > 0:
             fac = mth("MULTIPLY", mth("GREATER_THAN", dot(H), 0.94), cfg["spec"])
             color = mix(color, fac, hexc(cfg.get("spec_col", "#FFFFFF")))
@@ -2958,7 +2958,7 @@ def char_shading():
 
 
 def trail_mat(name, color, energy, z0, z1, peak):
-    """Vệt khí mờ dần theo trục Z của vật (z0 đậm → z1 trong suốt); lớp energy cũng theo alpha."""
+    """Ki streak fading along the object's Z axis (z0 dense → z1 transparent); the energy layer follows alpha too."""
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -2991,14 +2991,14 @@ def trail_mat(name, color, energy, z0, z1, peak):
 
 
 def flight_trails(G, F):
-    """Vệt khí kéo dài sau lưng khi bay truy đuổi: vàng (Goku), hồng tím (Frieza). Nằm trong CTRL nên không vào matte."""
+    """Ki trail behind the back during the chase: gold (Goku), pink-purple (Frieza). In CTRL so it stays out of the matte."""
     for R, col, en, f0, f1 in ((G, "#FFC83A", 0.7, 786, 986), (F, "#E25BFF", 0.5, 786, 986)):
         bm = bmesh.new()
         bmesh.ops.create_cone(bm, cap_ends=False, segments=16, radius1=0.0, radius2=0.12, depth=2.3)
         for v in bm.verts:
-            v.co.z += 0.5 - 1.15                     # miệng loe ở ngực (z 0.5), chóp nhọn ở z -1.8 phía sau
-        # v25: thêm các vệt khí mảnh dài ngắn khác nhau toả quanh lõi (trước: một khối nón trơn như cái phễu tím)
-        rs = random.Random(int(col[1:], 16) % 1000)   # seed cố định (hash() của str đổi mỗi lần chạy)
+            v.co.z += 0.5 - 1.15                     # mouth flares at the chest (z 0.5), pointed tip at z -1.8 behind
+        # v25: thin Ki streaks of varied length around the core (before: one smooth cone like a purple funnel)
+        rs = random.Random(int(col[1:], 16) % 1000)   # fixed seed (str hash() changes every run)
         for k in range(7):
             tmp = bmesh.new()
             ln = rs.uniform(1.3, 2.7)
@@ -3015,13 +3015,13 @@ def flight_trails(G, F):
         ob.visible_shadow = False
         ob.scale = (0, 0, 0); ob.keyframe_insert("scale", frame=0); ob.keyframe_insert("scale", frame=f0 - 1)
         for f in range(f0, f1, 4):
-            k = 1.0 + 0.12 * math.sin(f * 1.7)       # chập chờn nhẹ
+            k = 1.0 + 0.12 * math.sin(f * 1.7)       # slight flicker
             ob.scale = (k, k, 1.0 + 0.1 * math.sin(f * 2.3)); ob.keyframe_insert("scale", frame=f)
         ob.scale = (0, 0, 0); ob.keyframe_insert("scale", frame=f1 + 2)
 
 
 def impact_stars(G, F):
-    """Ngôi sao va chạm kiểu anime (2 lớp: cam ngoài, trắng trong) bật ra rồi tắt ở mỗi đòn chạm, luôn quay mặt về camera."""
+    """Anime impact star (2 layers: orange outer, white inner) that pops then vanishes on each hit, always facing the camera."""
     def star_mesh(name, r_out, r_in, n, mat, z):
         bm = bmesh.new()
         ring = []
@@ -3050,8 +3050,8 @@ def impact_stars(G, F):
 
 
 def blob_shadows(G, F):
-    """Bóng tròn kiểu anime dưới chân: bám XY của root, nằm trên mặt đất (hoặc mặt biển ngoài đảo),
-    nhỏ dần rồi biến mất khi nhân vật bay lên cao (driver biểu thức đơn giản, không cần Python)."""
+    """Anime-style round shadow under the feet: follows root XY, sits on the ground (or the sea surface off the island),
+    shrinking then vanishing as the character flies higher (simple expression driver, no Python needed)."""
     m = bpy.data.materials.new("blob_shadow")
     m.use_nodes = True
     nt = m.node_tree
@@ -3060,7 +3060,7 @@ def blob_shadows(G, F):
     N, L = nt.nodes, nt.links
     tc = N.new("ShaderNodeTexCoord")
     ln = N.new("ShaderNodeVectorMath"); ln.operation = "LENGTH"; L.new(tc.outputs["Object"], ln.inputs[0])
-    mr = N.new("ShaderNodeMapRange")              # elip đặc kiểu cel, chỉ mềm ở sát mép
+    mr = N.new("ShaderNodeMapRange")              # solid cel-style ellipse, soft only right at the edge
     mr.inputs["From Min"].default_value, mr.inputs["From Max"].default_value = 0.86, 1.0
     mr.inputs["To Min"].default_value, mr.inputs["To Max"].default_value = 0.62, 0.0
     L.new(ln.outputs["Value"], mr.inputs["Value"])
@@ -3084,9 +3084,9 @@ def blob_shadows(G, F):
         ob = _obj(f"{R['root'].name.lower()}_shadow", bm, m, C_CTRL, smooth=False, outline=0)
         ob.visible_shadow = False
         ob.scale = (rad_ * 1.25, rad_, 1.0)
-        if R is G:                                   # khớp lúc Goku biến mất (dịch chuyển tức thời)
+        if R is G:                                   # cut when Goku vanishes (instant transmission)
             kvis([ob], 1000, True); kvis([ob], 1001, False); kvis([ob], 1012, True)
-        else:                                        # Frieza bị hạ thì tắt theo
+        else:                                        # turns off when Frieza is defeated
             kvis([ob], 1150, True); kvis([ob], 1151, False)
 
         def var(dr, name, axis):
@@ -3102,18 +3102,18 @@ def blob_shadows(G, F):
         for i, k in enumerate((rad_ * 1.25, rad_)):
             dr = ob.driver_add("scale", i)
             var(dr, "x", "X"); var(dr, "y", "Y"); var(dr, "z", "Z")
-            # root ở lòng bàn chân: bay cao hơn mặt dưới ~1.6m thì bóng tắt hẳn
+            # root at the sole: flying ~1.6m above the ground plane turns the shadow off completely
             dr.driver.expression = (f"{k} * max(0, 1 - max(0, z + 0.645 - 0.65 * (sqrt(x * x + y * y) < 74.5)) / 1.6)")
 
 
 def finger_when_shooting():
-    """Ngón trỏ Frieza chỉ duỗi ra quanh các phát Death Beam / ki blast; lúc khác nắm tay tròn
-    (giơ tay lên ngực mà duỗi một ngón dễ thành cử chỉ khiếm nhã)."""
+    """Frieza's index finger extends only around the Death Beam / ki blast shots; otherwise a round fist
+    (raising the hand to the chest with one finger extended easily reads as a rude gesture)."""
     fg = bpy.data.objects["fr_finger_R"]
     for f, v in ((0, False), (550, True), (690, False), (825, True), (970, False), (1150, False)):
         kvis([fg], f, v)
-    # bàn tay 4 ngón: xoè khi hoảng (thấy Goku biến hình → trước khi chỉ tay) và từ lúc mất dấu Goku tới khi rơi;
-    # còn lại co hờ. Ngón trỏ co hờ ẩn khi ngón trỏ duỗi. Key 1150 đè key "hiện" chung ở choreograph, 1151 vẫn tắt.
+    # 4-finger hand: spread when panicking (Goku transforming → before pointing) and from losing Goku until the fall;
+    # half-curled otherwise; curled index hidden while extended. Key 1150 overrides choreograph's "show" key, 1151 stays off.
     relax = F["fingers_R"] + F["fingers_L"]
     opened = [F["fingers_open_R"], F["fingers_open_L"]]
     for f, v in ((0, True), (518, False), (550, True), (992, False), (1150, False)):
@@ -3141,26 +3141,26 @@ flight_trails(G, F)
 blob_shadows(G, F)
 finger_when_shooting()
 exec(compile(open(os.path.join(HERE, "kamehameha.py")).read(), "kamehameha.py", "exec"), globals())
-kame_build()                         # v23: bàn tay xoè, quả cầu, tia, cầu nổ (trước extras để được tô cel + viền)
-# chi tiết bổ sung theo từng mảng (mỗi file một người làm, chạy sau cùng, dùng chung globals: G, F, M, helper...)
-# GVF_EXTRAS=a.py:b.py để thử riêng vài file thay vì cả thư mục extras/
+kame_build()                         # v23: open hand, ball, beam, blast sphere (before extras so they get cel + outline)
+# extra details per area (one person per file, run last, sharing globals: G, F, M, helpers...)
+# GVF_EXTRAS=a.py:b.py to try just a few files instead of the whole extras/ folder
 _extras = os.environ.get("GVF_EXTRAS")
 for _fn in (_extras.split(":") if _extras else sorted(glob.glob(os.path.join(HERE, "extras", "*.py")))):
     print("EXTRAS", _fn)
     exec(compile(open(_fn).read(), _fn, "exec"), globals())
-char_shading()                       # sau extras: phủ cả material nhân vật do extras tạo
+char_shading()                       # after extras: covers the character materials created by extras
 exec(compile(open(os.path.join(HERE, "char_outlines.py")).read(), "char_outlines.py", "exec"), globals())
-char_outlines()                      # sau char_shading: nét viền nhân vật đổi độ dày theo camera/bộ phận, vuốt nhọn mũi
+char_outlines()                      # after char_shading: outline width per camera/part, tapered tips
 exec(compile(open(os.path.join(HERE, "retime.py")).read(), "retime.py", "exec"), globals())
-retime_scene()                       # cuối cùng: giãn nhịp mọi keyframe + marker theo shot (phim 20 s → ~29 s)
-kame_animate()                       # rồi key đoạn Kamehameha vào khoảng trống retime để lại (frame mới)
+retime_scene()                       # last: retime every keyframe + marker per shot (20 s film → ~29 s)
+kame_animate()                       # then key the Kamehameha segment into the gap the retime left (new frames)
 exec(compile(open(os.path.join(HERE, "secondary.py")).read(), "secondary.py", "exec"), globals())
-secondary_motion()                   # sau cùng: tóc/đuôi có quán tính theo gia tốc của đầu/hông (nhịp frame cuối)
-grass_wind()                         # cỏ ngả ra ngoài theo gió khí lúc gồng/biến hình
-tree_wind()                          # v28 cây đung đưa theo gió giông + sóng xung kích biến hình
-storm_leaves()                       # v29 lá cây bay theo gió giông, bị sóng xung kích hất văng
-beam_impacts()                       # v30 Death Beam trượt Goku trúng đất phía sau: loé, đất văng, bụi, vết cháy
-foot_ground_fix()                    # v31 chân Goku không lún xuống đất lúc gồng khí
+secondary_motion()                   # last of all: hair/tail inertia from head/hip acceleration (final frame timing)
+grass_wind()                         # grass bends outward in the Ki wind while powering up / transforming
+tree_wind()                          # v28 trees sway in the storm wind + transformation shockwave
+storm_leaves()                       # v29 leaves blown by the storm wind, flung by the shockwave
+beam_impacts()                       # v30 Death Beams missing Goku hit the ground behind: flash, dirt, dust, scorch marks
+foot_ground_fix()                    # v31 Goku's feet don't sink into the ground while powering up Ki
 scene.frame_set(0)
 bpy.ops.wm.save_as_mainfile(filepath=BLEND)
 print("SAVED", BLEND)

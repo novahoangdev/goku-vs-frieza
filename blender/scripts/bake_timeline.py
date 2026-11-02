@@ -1,7 +1,7 @@
-# Xuất timeline.json cho app: toạ độ 2D (px trên plate 1152×2496) của các anchor theo từng frame,
-# các track hiệu ứng keyframe trên Empty "FX", và marker (haptic, cut).
+# Exports timeline.json for the app: 2D coordinates (px on the 1152×2496 plate) of the anchors per frame,
+# the effect tracks keyframed on the "FX" Empty, and the markers (haptic, cut).
 #
-# Chạy: Blender -b blender/goku_vs_frieza.blend -P blender/scripts/bake_timeline.py
+# Run: Blender -b blender/goku_vs_frieza.blend -P blender/scripts/bake_timeline.py
 import bpy, json, os
 from bpy_extras.object_utils import world_to_camera_view
 
@@ -25,17 +25,17 @@ OUT = os.path.join(os.path.dirname(bpy.data.filepath), "..", "app", "assets", "c
 out = {"fps": FPS, "frames": 0, "plate": [W, H],
        "anchors": {k: [] for k in list(ANCHORS) + ["goku_trail"]}, "tracks": {k: [] for k in TRACKS + ["fxclock"]}}
 clock = 0.0
-hist = []                                                          # vị trí ngực Goku (world) các frame trước
+hist = []                                                          # Goku's chest position (world) in previous frames
 for f in range(scene.frame_start, scene.frame_end + 1):
     scene.frame_set(f)
     for name, obj in ANCHORS.items():
         world = bpy.data.objects[obj].matrix_world.translation
-        v = world_to_camera_view(scene, scene.camera, world)      # x, y ∈ [0, 1] gốc dưới-trái; z = độ sâu
+        v = world_to_camera_view(scene, scene.camera, world)      # x, y ∈ [0, 1] origin bottom-left; z = depth
         out["anchors"][name] += [round(v.x * W, 1), round((1 - v.y) * H, 1), round(v.z, 2)]
-    # goku_trail: chỗ Goku đã đi qua 0.25 s trước theo vận tốc hiện tại → app cho aura toé ngược hướng bay
+    # goku_trail: where Goku was 0.25 s ago at the current velocity → the app sprays the aura opposite to the flight direction
     gc = bpy.data.objects[ANCHORS["goku_chest"]].matrix_world.translation.copy()
     vel = (gc - hist[-4]) / 4 if len(hist) >= 4 else gc * 0
-    if vel.length > 1.5:                                           # dịch chuyển tức thời / qua cut: bỏ
+    if vel.length > 1.5:                                           # instant teleport / across a cut: skip
         vel *= 0
     hist.append(gc)
     v = world_to_camera_view(scene, scene.camera, gc - vel * 15)
@@ -43,10 +43,10 @@ for f in range(scene.frame_start, scene.frame_end + 1):
     for k in TRACKS:
         out["tracks"][k].append(round(float(fx[k]), 4))
     out["tracks"]["fxclock"].append(round(clock, 4))
-    clock += float(fx["timescale"]) / FPS                          # slow-mo thì FX trong app chậm theo
+    clock += float(fx["timescale"]) / FPS                          # in slow-mo the app's FX slow down too
     out["frames"] += 1
 
-# bản đồ giãn nhịp frame cũ → mới (retime.py): app/promo/audio quy đổi các mốc thời gian viết theo phim 20 s cũ
+# old → new frame retime map (retime.py): app/promo/audio convert cues written against the old 20 s film
 out["retime"] = json.loads(scene.get("retime", "[[0, 0], [1200, 1200]]"))
 out["markers"] = sorted(({"f": m.frame, "name": m.name} for m in scene.timeline_markers),
                         key=lambda m: m["f"])

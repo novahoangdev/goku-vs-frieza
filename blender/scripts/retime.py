@@ -1,16 +1,16 @@
-# Giãn nhịp phim (v22): phim 20 s cắt cảnh quá nhanh nên cảm giác cụt ngủn. Ánh xạ frame cũ → frame mới tuyến tính
-# từng đoạn theo shot, mỗi shot giãn một hệ số riêng: chậm nhiều ở mở màn, biến hình, cú đấm và cảnh kết; vừa phải ở
-# đoạn combo/rượt đuổi cho còn dồn dập. Áp lên MỌI keyframe (vật, material, node, camera, FX) và marker trước khi lưu;
-# bản đồ ghi vào scene["retime"] → bake_timeline chép sang timeline.json cho app, promo, audio, compare dùng chung.
+# Film retiming (v22): the 20 s film cut too fast and felt abrupt. Maps old frames → new frames piecewise linearly
+# per shot, each shot stretched by its own factor: much slower for the opening, transformation, punch and ending; moderate for
+# the combo/chase so it stays frantic. Applied to EVERY keyframe (objects, materials, nodes, camera, FX) and marker before saving;
+# the map is stored in scene["retime"] → bake_timeline copies it into timeline.json, shared by app, promo, audio and compare.
 import json
 import bpy
 
-# (frame cũ, frame mới) tại các điểm cắt cảnh; frame mới là số nguyên để cut rơi đúng frame
+# (old frame, new frame) at the cut points; new frames are integers so cuts land exactly on a frame
 _SEG = [(0, 1.6), (120, 1.4), (240, 1.3), (300, 1.6), (390, 1.5), (510, 1.4), (600, 1.25), (690, 1.2),
         (780, 1.25), (990, 1.3), (1030, 1.5), (1110, 2.0), (1200, None)]
-# v23: chèn đoạn Kamehameha (dài KAME_LEN frame mới) ngay trước shot kết: bản đồ có một bước nhảy dọc ở GAP_AT
-# (frame gốc 1109.8 — sau key giữ-hình 1109.6 của cut 1110, trước chính cut đó). Mọi nơi đọc bản đồ (app, promo,
-# audio, tools) đều tìm đoạn đầu tiên có f <= b nên đoạn dài 0 ở bước nhảy không bao giờ bị chia cho 0.
+# v23: inserts the Kamehameha sequence (KAME_LEN new frames long) right before the final shot: the map has a vertical jump at GAP_AT
+# (original frame 1109.8 — after the hold key 1109.6 of cut 1110, before that cut itself). Everything that reads the map (app, promo,
+# audio, tools) looks for the first segment with f <= b, so the zero-length segment at the jump is never divided by 0.
 GAP_AT, KAME_LEN = 1109.8, 330
 RETIME = [(0, 0)]
 for (a, k), (b, _) in zip(_SEG, _SEG[1:]):
@@ -20,12 +20,12 @@ for (a, k), (b, _) in zip(_SEG, _SEG[1:]):
         RETIME.append((b, RETIME[-1][1] + (b - GAP_AT) * k))
         continue
     RETIME.append((b, RETIME[-1][1] + round((b - a) * k)))
-KAME0 = int(round(RETIME[[x for x, _ in RETIME].index(GAP_AT)][1] + 0.5))   # frame mới đầu tiên của đoạn Kamehameha
-KAME1 = KAME0 + KAME_LEN                                                     # = cut vào shot kết
+KAME0 = int(round(RETIME[[x for x, _ in RETIME].index(GAP_AT)][1] + 0.5))   # first new frame of the Kamehameha sequence
+KAME1 = KAME0 + KAME_LEN                                                     # = cut into the final shot
 
 
 def rt(f):
-    """frame cũ → frame mới (ngoài khoảng: ngoại suy theo hệ số đoạn đầu/cuối)."""
+    """old frame → new frame (outside the range: extrapolate with the first/last segment's factor)."""
     if f <= RETIME[0][0]:
         return f * _SEG[0][1]
     for (a, na), (b, nb) in zip(RETIME, RETIME[1:]):
@@ -47,12 +47,12 @@ def retime_scene():
         for fc in fcs:
             xs = [kp.co.x for kp in fc.keyframe_points]
             if xs and min(xs) < GAP_AT < max(xs):
-                holds.append((fc, fc.evaluate(GAP_AT)))      # giữ nguyên trạng thái cuối shot 9 suốt khoảng chèn
+                holds.append((fc, fc.evaluate(GAP_AT)))      # hold the final state of shot 9 throughout the inserted gap
             for kp in fc.keyframe_points:
                 x = kp.co.x
                 nx = rt(x)
                 kp.co.x = nx
-                # tay cầm Bezier: giãn theo hệ số cục bộ quanh key (giữ dáng đường cong)
+                # Bezier handles: stretched by the local factor around the key (keeps the curve shape)
                 for h in ("handle_left", "handle_right"):
                     hv = getattr(kp, h)
                     hv.x = rt(hv.x) if abs(hv.x - x) > 1e-6 else nx

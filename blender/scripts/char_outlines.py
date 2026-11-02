@@ -1,35 +1,35 @@
-# Nét viền nhân vật kiểu FighterZ (hậu kỳ, chạy SAU char_shading trong build_scene.py, chung globals).
-# Chỉ đụng modifier "Outline" (Solidify inverted-hull) của vật trong GOKU/FRIEZA; viền cảnh giữ nguyên.
-#  1) bù khoảng cách camera: driver trên Solidify.thickness theo khoảng cách camera→vật và tiêu cự, nên cận cảnh
-#     không thành vệt mực dày cả chục pixel, toàn cảnh không mảnh như sợi tóc mà cũng không đặc thành cục đen.
-#  2) theo bộ phận: vật lớn (đầu, tóc, thân, chân) làm nên đường bao ngoài → nét đậm hơn; vật nhỏ (gờ, nút, dây) mảnh hơn.
-#  3) bao ngoài đậm, trong mảnh: trọng số theo hướng pháp tuyến so với trục thân nhân vật — mặt quay ra ngoài
-#     (mép ngoài tay/chân/đầu, tạo đường bao) nét đủ; mặt quay vào trong (đùi trong, mặt tay áp vào thân) nét mảnh.
-#  3b) vuốt nhọn: trọng số đỉnh = độ dày cục bộ của khối (bắn tia vào trong) → mũi lọn tóc, ngón tay, tai, đầu dây
-#     nét thu nhỏ dần thay vì cục tròn; khối dày giữ nét đủ.
-#  4) màu nét: vật còn dùng viền nâu-đen chung (gờ tay áo, gờ vai Frieza) đổi sang tông tối của chính chất liệu.
+# FighterZ-style character outlines (post pass, runs AFTER char_shading in build_scene.py, shared globals).
+# Only touches the "Outline" modifier (Solidify inverted hull) on objects in GOKU/FRIEZA; scene outlines stay as they are.
+#  1) camera-distance compensation: a driver on Solidify.thickness from the camera→object distance and focal length, so close-ups
+#     don't become ink strokes dozens of pixels thick, and wide shots are neither hair-thin nor clotted into black blobs.
+#  2) per body part: large objects (head, hair, torso, legs) form the outer silhouette → bolder lines; small ones (ridges, buttons, cords) thinner.
+#  3) bold outside, thin inside: weight by normal direction relative to the character's body axis — faces pointing outward
+#     (outer edges of arms/legs/head, forming the silhouette) get full lines; faces pointing inward (inner thighs, arms against the body) thin lines.
+#  3b) tapering: vertex weight = local thickness of the volume (rays cast inward) → hair-lock tips, fingers, ears, cord ends
+#     taper off instead of ending in round blobs; thick volumes keep full lines.
+#  4) line color: objects still using the shared brown-black outline (sleeve ridges, Frieza's shoulder ridges) switch to the dark tone of their own material.
 import bpy
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
-OL_REF = 3.0            # khoảng cách hiệu dụng (quy về ống 50mm) giữ nguyên độ dày gốc — cỡ trung cảnh
-OL_POW = 0.3            # độ dày thế giới ∝ d^0.3 → bề rộng pixel ∝ d^-0.7 (xa mảnh dần, gần đậm dần nhưng có hãm)
+OL_REF = 3.0            # effective distance (normalized to a 50mm lens) that keeps the original thickness — about a medium shot
+OL_POW = 0.3            # world thickness ∝ d^0.3 → pixel width ∝ d^-0.7 (thinner when far, bolder when close, but damped)
 OL_CLAMP = (0.45, 2.4)
-OL_TIP_T = 0.035        # độ dày khối (m) từ đó trở lên nét đủ; mỏng hơn thì nét thu dần
-OL_TIP_MIN = 0.35       # hệ số nét ở chỗ mỏng nhất (mũi tóc, đầu ngón)
-OL_INNER = 0.4          # hệ số trọng số của mặt quay hẳn vào trong thân (1 = không phân biệt)
-OL_LINE_FOR = {"gd_blue_dk": "blue", "fr_rim": "f_purple", "fr_gem": "f_purple"}   # chất liệu → màu nét
+OL_TIP_T = 0.035        # volume thickness (m) at or above which lines are full; thinner volumes taper the line
+OL_TIP_MIN = 0.35       # line factor at the thinnest spots (hair tips, fingertips)
+OL_INNER = 0.4          # weight factor for faces pointing straight into the body (1 = no distinction)
+OL_LINE_FOR = {"gd_blue_dk": "blue", "fr_rim": "f_purple", "fr_gem": "f_purple"}   # material → line color
 
 
 def _ol_size_mult(ob):
-    """Vật càng lớn càng góp phần đường bao ngoài → nét đậm hơn (đầu/tóc ×1.4, vật nhỏ ×0.85)."""
+    """The bigger the object, the more it contributes to the outer silhouette → bolder lines (head/hair ×1.4, small objects ×0.85)."""
     d = ob.dimensions.length
     return max(0.85, min(1.4, (d / 0.3) ** 0.45))
 
 
 def _ol_tip_weights(ob, center):
-    """Trọng số 0..1 mỗi đỉnh = độ dày khối tại đó (tia từ đỉnh bắn ngược pháp tuyến), làm mượt 2 vòng,
-    nhân hệ số hướng ra ngoài so với tâm thân `center` (thế giới; trục đứng được nén ×0.3 để tay/chân xét theo ngang)."""
+    """Per-vertex 0..1 weight = volume thickness at that point (ray cast from the vertex against the normal), smoothed 2 passes,
+    times an outward-facing factor relative to the body center `center` (world; vertical axis squashed ×0.3 so arms/legs are judged horizontally)."""
     me = ob.data
     n = len(me.vertices)
     if n == 0:
@@ -76,7 +76,7 @@ def _ol_line_color(ob):
 def char_outlines():
     cam = bpy.data.objects.get("CAM") or scene.camera
     stats = []
-    scene.frame_set(0)                    # tư thế đứng đầu phim để xét hướng trong/ngoài
+    scene.frame_set(0)                    # standing pose at the start of the film to judge inside/outside
     for cn, anchor in (("GOKU", "GOKU_chest_anchor"), ("FRIEZA", "FRIEZA_chest_anchor")):
         anc = bpy.data.objects[anchor]
         for ob in bpy.data.collections[cn].all_objects:
@@ -93,7 +93,7 @@ def char_outlines():
                         vg.add([i], x, "REPLACE")
                     mod.vertex_group = vg.name
                     mod.thickness_vertex_group = OL_TIP_MIN
-                target = ob                       # gốc vật nằm sát khối (đuôi Frieza là curve gốc ở 0 → dùng ngực)
+                target = ob                       # object origin close to the volume (Frieza's tail is a curve with origin at 0 → use the chest)
             _ol_line_color(ob)
             fc = mod.driver_add("thickness")
             dr = fc.driver

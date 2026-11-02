@@ -1,21 +1,21 @@
-# Đoạn Kamehameha (v23): chèn 5.5 s giữa cú đấm sau lưng (shot 9) và shot kết. retime.py mở một khoảng trống
-# KAME0..KAME1 (frame mới) trên mọi keyframe; mọi kênh có key ở hai bên được "giữ hình" ở KAME0, file này key đè
-# các kênh cần diễn trong khoảng đó: Goku thủ thế ở hông → tụ khí giữa hai lòng bàn tay → đẩy tay "HA!" bắn tia
-# xanh vượt biển → Frieza khoanh tay đỡ → nổ cầu xanh nuốt Frieza → chớp trắng sang shot kết.
+# Kamehameha sequence (v23): inserts 5.5 s between the punch from behind (shot 9) and the final shot. retime.py opens
+# a gap KAME0..KAME1 (new frames) in every keyframe; every channel keyed on both sides is "held" at KAME0, and this file
+# keys the channels that must act inside the gap: Goku's stance at the hip → Ki gathers between his palms → he thrusts
+# "HA!" and fires a blue beam across the sea → Frieza blocks with crossed arms → blue blast swallows him → white flash.
 #
-# Chạy trong build_scene.py (chung globals): kame_build() trước extras (để char_shading/outline phủ cả bàn tay xoè),
-# kame_animate() sau retime_scene() (key thẳng theo frame mới).
+# Runs inside build_scene.py (shared globals): kame_build() before extras (so char_shading/outline also cover the open hands),
+# kame_animate() after retime_scene() (keys straight on the new frames).
 import bpy, bmesh, math, random
 from mathutils import Vector, Matrix, Euler, Quaternion
 
-# shot trong đoạn (offset frame mới tính từ KAME0)
+# shots in the sequence (new-frame offset from KAME0)
 K_A, K_B, K_C, K_D, K_E, K_F = 0, 90, 160, 198, 236, 290
 K_FIRE, K_HIT = 201, 246
 KAME_SHOTS = [K_B, K_C, K_D, K_E, K_F]
 
 
 def _kame_mat(name, cols, blend=0.42, energy=1.0):
-    """Năng lượng cel 4 tông theo góc nhìn (lõi trắng → xanh băng → xanh dương → viền lam đậm), tự phát sáng."""
+    """Cel energy in 4 tones by view angle (white core → ice blue → blue → deep blue rim), self-emissive."""
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -39,9 +39,9 @@ KAME_COLS = [(0.0, "#FFFFFF"), (0.34, "#B8F4FF"), (0.58, "#4CC2FF"), (0.8, "#226
 
 
 def _kame_flow_mat(name, cols, energy=1.0):
-    """v26 thân tia: như _kame_mat nhưng hệ số Facing bị nhiễu dạng vệt dọc tia trôi về phía trước (khí cuồn cuộn
-    chảy từ tay ra), không còn là ống nhựa trơn. Nhiễu theo toạ độ Object (tia dọc +X, scale X = chiều dài)."""
-    m = _kame_mat(name, cols, blend=0.3, energy=energy)     # v28 blend 0.42 → 0.3: lõi trắng rộng hơn, hết như ống nhựa xanh
+    """v26 beam body: like _kame_mat but the Facing factor is perturbed by streaky noise along the beam drifting forward (Ki
+    billowing out of the hands), no longer a smooth plastic tube. Noise in Object coords (beam along +X, scale X = length)."""
+    m = _kame_mat(name, cols, blend=0.3, energy=energy)     # v28 blend 0.42 → 0.3: wider white core, no longer a blue plastic tube
     nt = m.node_tree
     N, L = nt.nodes, nt.links
     lw = next(n for n in N if n.type == "LAYER_WEIGHT")
@@ -66,8 +66,8 @@ def _kame_flow_mat(name, cols, energy=1.0):
 
 
 def _open_hand(side, sx, parent, col):
-    """Bàn tay xoè hơi khum (cùng hệ trục với goku_fist): gốc ở cổ tay, ngón theo -Z, lòng bàn tay nhìn (-sx, 0, 0),
-    ngón cái phía -Y."""
+    """Open, slightly cupped hand (same axes as goku_fist): origin at the wrist, fingers along -Z, palm facing (-sx, 0, 0),
+    thumb on the -Y side."""
     pn = -sx
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=24, v_segments=14, radius=1.0)
@@ -75,7 +75,7 @@ def _open_hand(side, sx, parent, col):
         q = v.co.copy()
         sq = lambda x: math.copysign(abs(x) ** 0.7, x)
         y, z, x = sq(q.y) * 0.044, sq(q.z) * 0.04 - 0.042, sq(q.x) * 0.019
-        x += pn * 0.012 * (y / 0.044) ** 2          # khum: mép lòng bàn tay cong về phía lòng
+        x += pn * 0.012 * (y / 0.044) ** 2          # cupping: palm edges curve toward the palm
         v.co = Vector((x, y, z))
     for y0, L, r in ((-0.03, 0.05, 0.0128), (-0.01, 0.056, 0.0132), (0.01, 0.053, 0.0128), (0.029, 0.043, 0.0112)):
         pts = [Vector((pn * 0.002, y0, -0.07)), Vector((pn * 0.008, y0 * 1.06, -0.07 - 0.55 * L)),
@@ -101,12 +101,12 @@ def kame_build():
     M["kame_soft"] = _kame_mat("kame_soft", [(0.0, "#FFFFFF"), (0.16, "#DDF8FF"), (0.38, "#8FE0FF"), (0.64, "#45A8FF"),
                                               (0.84, "#2058E0")], blend=0.3)
     core = empty("KAME_core", C_ENV, G["chest"], (0, 0, 0), 0.05)
-    # v26 cầu khí: lõi trắng nhỏ + nhiều lớp xanh ngọc → lam (trước gần như trắng toàn khối như nắm cơm)
+    # v26 Ki sphere: small white core + many cyan → blue layers (before it was almost solid white, like a rice ball)
     M["kame_ball"] = _kame_mat("kame_ball", [(0.0, "#FFFFFF"), (0.07, "#D8FAFF"), (0.18, "#78DBFF"), (0.36, "#3393FA"),
                                               (0.58, "#1E55DC")], blend=0.42)
     ball = sphere("kame_ball", 1.0, M["kame_ball"], C_ENV, seg=32, outline=0)
     ball.parent = core
-    # tia điện lách tách quanh quả cầu: vài đường zigzag mảnh, đổi hướng mỗi 3 frame
+    # crackling sparks around the sphere: a few thin zigzag lines, changing direction every 3 frames
     sparks = []
     rng = random.Random(23)
     for i in range(7):
@@ -122,7 +122,7 @@ def kame_build():
     light = bpy.data.lights.new("kame_light", "POINT")
     light.color, light.energy, light.shadow_soft_size = (0.45, 0.78, 1.0), 0.0, 0.05
     lo = bpy.data.objects.new("kame_light", light); C_LIGHT.objects.link(lo); lo.parent = core
-    # thân tia: ống trụ đơn vị dọc +X (gốc ở tay), co giãn bằng scale; đầu tia + miệng tia là hai quả cầu
+    # beam body: unit cylinder along +X (origin at the hands), stretched via scale; beam head + muzzle are two spheres
     bm = bmesh.new()
     seg, rings = 40, 48
     rows = []
@@ -138,11 +138,11 @@ def kame_build():
     head = sphere("kame_head", 1.0, M["kame"], C_ENV, seg=32, outline=0)
     boom = sphere("kame_boom", 1.0, M["kame_soft"], C_ENV, seg=48, outline=0)
     tex = bpy.data.textures.new("kame_boom_n", "CLOUDS"); tex.noise_scale, tex.noise_depth = 0.32, 1
-    tc = empty("KAME_boom_tc", C_CTRL, None, (0, 0, 0), 0.2)      # toạ độ noise trôi theo thời gian: khối nổ cuộn
+    tc = empty("KAME_boom_tc", C_CTRL, None, (0, 0, 0), 0.2)      # noise coords drifting over time: billowing blast
     dsp = boom.modifiers.new("lumpy", "DISPLACE")
     dsp.texture, dsp.strength, dsp.mid_level = tex, 0.3, 0.5
     dsp.texture_coords, dsp.texture_coords_object = "OBJECT", tc
-    # tia điện quanh khối nổ (con của khối nổ: to theo), bật tắt ngẫu nhiên mỗi 3 frame
+    # sparks around the blast (children of the blast: scale with it), toggled randomly every 3 frames
     bolts = []
     rng = random.Random(57)
     for i in range(10):
@@ -157,7 +157,7 @@ def kame_build():
         b.visible_shadow = False
         bolts.append(b)
     kvis(bolts, 0, False)
-    # v28 vòng sóng xung kích mảnh (0.035 → 0.014; scale lên 4.6 lần thì ống dày 16 cm như vòng hula) và vỡ dần khi loang
+    # v28 thin shockwave ring (0.035 → 0.014; scaled up 4.6× the tube was 16 cm thick like a hula hoop), breaks up as it spreads
     ring = torus("kame_ring", 1.0, 0.014, _ripple_mat("kame_ring_m", "#E6FAFF"), C_ENV, seg=96, ring=6, outline=0)
     ring.rotation_mode = "QUATERNION"
     for o in [ball, beam, head, boom, ring] + sparks:
@@ -168,21 +168,21 @@ def kame_build():
     kame_water_build()
 
 
-# ── IK 2 khớp cho tay Goku trong không gian ngực (vai: Euler XYZ tự do, khuỷu: chỉ gập rx) ──
+# ── 2-joint IK for Goku's arms in chest space (shoulder: free XYZ Euler, elbow: bends on rx only) ──
 def _arm_ik(sx, wrist):
     d = GOKU_DIM
     p_sh = Vector((sx * d["sh_x"], 0, d["sh_z"]))
     a = Vector((sx * 0.005, 0, -d["upper"]))
     to = wrist - p_sh
     dist = min(to.length, 0.999 * math.sqrt(a.length_squared + 0.15 ** 2 + 2 * a.length * 0.15))
-    # |a + Rx(θ)·(0,0,-0.15)|² = |a|² + 0.15² + 2·0.2·0.15·cosθ  (a gần như dọc -Z)
+    # |a + Rx(θ)·(0,0,-0.15)|² = |a|² + 0.15² + 2·0.2·0.15·cosθ  (a almost along -Z)
     c = (dist ** 2 - a.length_squared - 0.15 ** 2) / (2 * d["upper"] * 0.15)
     th = -math.acos(max(-1.0, min(1.0, c)))
     v = a + Vector((0, 0.15 * math.sin(th), -0.15 * math.cos(th)))
     u = to.normalized() * v.length
     rmin = v.rotation_difference(u).to_matrix()
     best = None
-    for k in range(72):                               # xoay quanh trục vai→cổ tay: chọn khuỷu thấp, hướng ra ngoài
+    for k in range(72):                               # rotate about the shoulder→wrist axis: pick a low, outward elbow
         rq = Quaternion(u.normalized(), math.radians(k * 5)).to_matrix() @ rmin
         e = rq @ a
         score = -e.z + 0.6 * sx * e.x + 0.25 * e.y
@@ -203,13 +203,13 @@ def _hand_basis(sx, fingers, normal):
 
 
 def kame_pose(f, chest, hips, head, arms, legs):
-    """arms: {side: (cổ tay, hướng ngón, pháp tuyến lòng bàn tay)} trong không gian ngực."""
+    """arms: {side: (wrist, finger direction, palm normal)} in chest space."""
     rot = {}
     for side, sx in (("R", -1), ("L", 1)):
         wrist, fing, nrm = arms[side]
         rsh, rel, err = _arm_ik(sx, Vector(wrist))
         if err > 0.02:
-            print(f"KAME ik {side}@{f} lệch {err:.3f}")
+            print(f"KAME ik {side}@{f} off by {err:.3f}")
         rw = (rsh @ rel).inverted() @ _hand_basis(sx, Vector(fing), Vector(nrm))
         rot[f"sh_{side}"] = tuple(math.degrees(x) for x in rsh.to_euler("XYZ"))
         rot[f"el_{side}"] = (math.degrees(rel.to_euler("XYZ").x), 0, 0)
@@ -233,22 +233,22 @@ def kame_animate():
     K = KAME0
     k = lambda o: K + o
     ka = G["kame"]
-    # vị trí: Goku lơ lửng trên biển nhìn +X, Frieza đã gượng dậy cách 12 m
+    # placement: Goku hovers over the sea facing +X, Frieza has struggled back up 12 m away
     fr_end = chase_path(1.0) + Vector((0, 0, 0.5))
     gp = fr_end + Vector((-1.0, 0, 0.25))
-    gp.z = SEA_TOP + 1.3                      # v25: lướt sát mặt biển (chân cách nước 1.3 m) → nước phản ứng thấy được
+    gp.z = SEA_TOP + 1.3                      # v25: skims the sea surface (feet 1.3 m above the water) → visible water reaction
     fp = gp + Vector((12.0, 0.6, 0.7))
     for o in (0, 90, 196):
         root(G, k(o), gp, 90)
     root(G, k(K_FIRE), gp + Vector((-0.05, 0, 0.02)), 90)
-    root(G, k(K_FIRE + 4), gp + Vector((-0.14, 0, 0.03)), 90)        # giật lùi vì phản lực, tia còn bắn thì còn bị đẩy lùi
+    root(G, k(K_FIRE + 4), gp + Vector((-0.14, 0, 0.03)), 90)        # recoils from the kickback, keeps being pushed back while the beam fires
     root(G, k(K_FIRE + 14), gp + Vector((-0.3, 0, 0.03)), 90)
     root(G, k(306), gp + Vector((-0.44, 0, 0.03)), 90)
     root(G, k(329), gp + Vector((-0.47, 0, 0.03)), 90)
-    for f in range(k(0), k(330), 6):                                  # hông nhấp nhô nhẹ khi lơ lửng
+    for f in range(k(0), k(330), 6):                                  # gentle hip bob while hovering
         kloc(G["hips"], f, Vector((0, 0, GOKU_DIM["hips"] + 0.02 * math.sin(math.tau * (f - K) / 72))))
 
-    # ── dáng ── (không gian ngực: mặt -Y, phải -X, trên +Z)
+    # ── pose ── (chest space: face -Y, right -X, up +Z)
     legs_c = dict(hip_R=(-12, 8, 0), kn_R=(28, 0, 0), hip_L=(18, -6, 0), kn_L=(38, 0, 0))
     legs_f = dict(hip_R=(-34, 8, 0), kn_R=(42, 0, 0), hip_L=(32, -8, 0), kn_L=(22, 0, 0))
     pose(G, k(4), "hero", head=(-6, 0, 0))
@@ -265,16 +265,16 @@ def kame_animate():
                   arms={"R": (Vector((0, -0.29, 0.228)), Vector((-0.25, 0, 1)), Vector((0, -1, 0))),
                         "L": (Vector((0, -0.29, 0.172)), Vector((0.25, 0, -1)), Vector((0, -1, 0)))}, legs=legs_f)
         kloc(ka["core"], k(o), Vector((0, -0.4, 0.2)))
-    pose(G, KAME1, "hero", hips=(0, 0, 0), head=(-6, 0, 0))      # shot kết: trả về dáng anh hùng ngay tại cut
+    pose(G, KAME1, "hero", hips=(0, 0, 0), head=(-6, 0, 0))      # final shot: back to the hero pose right at the cut
     kvis(G["fists"], k(13), True)
     kvis(G["palms"], k(14), True); kvis(G["fists"], k(14), False)
     kvis(G["palms"], KAME1, False); kvis(G["fists"], KAME1, True)
-    # nét mặt: nghiến răng + mắt dữ khi tụ khí, há miệng hét "HA!", hết đoạn trả lại như cũ
+    # expression: gritted teeth + fierce eyes while gathering Ki, mouth open yelling "HA!", restored after the sequence
     kvis(G["grit"] + G["eyes_fierce"], k(10), True); kvis(G["mouth"] + G["eyes_ssj"] + G["mouth_open"], k(10), False)
     kvis(G["mouth_open"], k(K_FIRE - 2), True); kvis(G["grit"], k(K_FIRE - 2), False)
     kvis(G["mouth_open"], KAME1, False); kvis(G["grit"] + G["eyes_fierce"], KAME1, False)
     kvis(G["mouth"] + G["eyes_ssj"], KAME1, True)
-    # tóc rung mạnh dần trong luồng khí, hất ngược ra sau khi bắn
+    # hair shakes harder in the Ki stream, flung back on firing
     hs = G["hair_ssj"]
     rng = random.Random(31)
     for f in range(k(0), k(330), 3):
@@ -284,7 +284,7 @@ def kame_animate():
         hs.rotation_euler = (rad(rng.uniform(-amp, amp) + back), rad(rng.uniform(-amp, amp)), rad(rng.uniform(-amp, amp) * 0.5))
         hs.keyframe_insert("rotation_euler", frame=f)
 
-    # ── Frieza: gượng dậy, sững người, khoanh tay đỡ rồi bị nuốt ──
+    # ── Frieza: struggles up, freezes, crosses his arms to block, then gets swallowed ──
     root(F, k(0), fp, 270); root(F, k(K_HIT), fp + Vector((0.1, 0, 0)), 270)
     root(F, k(K_HIT + 16), fp + Vector((1.6, 0.1, 0.4)), 270, -25)
     pose(F, k(0), "shock")
@@ -294,7 +294,7 @@ def kame_animate():
     kvis(F["eyes_shock"] + F["mouth_open"], k(0), True)
     kvis(F["eyes_hit"] + F["pain"] + F["eyes"] + F["mouth"] + F["eyes_angry"] + F["snarl"], k(0), False)
     kvis(F["eyes_hit"] + F["pain"], k(K_HIT), True); kvis(F["eyes_shock"] + F["mouth_open"], k(K_HIT), False)
-    # đuôi vẫn lắc trong lúc chèn (key gốc đã bị giữ-hình ở KAME0)
+    # tail keeps swaying during the insert (the original keys were held at KAME0)
     for f in range(k(0), k(K_HIT + 20), 20):
         for i, seg in enumerate(F["tail"]):
             krot(seg, f, (-12 - 6 * math.sin(f / 40 + i * 0.7), 0, 14 * math.sin(f / 33 + i * 0.5)))
@@ -302,10 +302,10 @@ def kame_animate():
     scene.frame_set(k(K_HIT))
     vis_now = {o.name: not o.hide_render for o in fr_all}
     hide = [o for o in fr_all if vis_now[o.name]]
-    kvis(hide, k(K_HIT + 13), True)             # vật chưa từng có key ẩn/hiện: thiếu key này thì ẩn từ frame 0
+    kvis(hide, k(K_HIT + 13), True)             # objects never keyed for visibility: without this key they'd be hidden from frame 0
     kvis(hide, k(K_HIT + 14), False)
 
-    # ── quả cầu khí ──
+    # ── Ki sphere ──
     def kscale(o, f, s):
         o.scale = (s, s, s); o.keyframe_insert("scale", frame=f)
     ball = ka["ball"]
@@ -314,7 +314,7 @@ def kame_animate():
                  (290, 0.14), (310, 0.06), (322, 0.0)):
         kscale(ball, k(o), s)
     rng = random.Random(41)
-    for f in range(k(24), k(K_FIRE), 3):                              # phập phồng + tia điện đổi hướng
+    for f in range(k(24), k(K_FIRE), 3):                              # pulsing + sparks change direction
         sp = ka["sparks"]
         for i, o in enumerate(sp):
             on = rng.random() < 0.55
@@ -328,7 +328,7 @@ def kame_animate():
     for o, e in ((0, 0), (20, 0), (90, 25), (160, 60), (196, 90), (K_FIRE, 260), (290, 200), (318, 0)):
         lt.energy = e; lt.keyframe_insert("energy", frame=k(o))
 
-    # ── tia: gốc ở quả cầu lúc bắn, bay thẳng tới ngực Frieza ──
+    # ── beam: origin at the sphere when firing, flies straight to Frieza's chest ──
     scene.frame_set(k(K_FIRE + 1))
     p0 = ka["core"].matrix_world.translation.copy()
     scene.frame_set(k(K_HIT))
@@ -348,11 +348,11 @@ def kame_animate():
     kscale(head, k(K_HIT + 2), 0.0)
     kvis([beam, head], k(320), False)
     _set_interp([beam, head], k(0), k(330), "LINEAR")
-    fv = M["kame_flow"].node_tree.nodes["flow"].outputs[0]   # vệt khí trôi ra phía trước (âm X của texture = tiến)
+    fv = M["kame_flow"].node_tree.nodes["flow"].outputs[0]   # Ki streaks drifting forward (texture -X = forward)
     fv.default_value = 0.0; fv.keyframe_insert("default_value", frame=k(K_FIRE))
     fv.default_value = -60.0; fv.keyframe_insert("default_value", frame=k(330))
     _set_interp([M["kame_flow"].node_tree], k(0), k(330), "LINEAR")
-    # gốc tia bám theo hai bàn tay (Goku bị phản lực đẩy lùi suốt lúc bắn), ngọn vẫn ở đầu tia / ngực Frieza
+    # beam origin follows both hands (Goku is pushed back by recoil the whole time), tip stays at the beam head / Frieza's chest
     cores = []
     for f in range(k(K_FIRE + 1), k(320), 2):
         scene.frame_set(f)
@@ -365,7 +365,7 @@ def kame_animate():
         beam.rotation_quaternion = Vector((1, 0, 0)).rotation_difference(d.normalized())
         beam.keyframe_insert("rotation_quaternion", frame=f)
         beam.scale = (max(0.05, d.length), r, r); beam.keyframe_insert("scale", frame=f)
-    # ── nổ: cầu xanh phình lên nuốt Frieza + vòng sóng ──
+    # ── blast: blue sphere swells to swallow Frieza + shockwave ring ──
     boom, ring = ka["boom"], ka["ring"]
     boom.location = tgt
     ring.location, ring.rotation_quaternion = tgt, Vector((0, 0, 1)).rotation_difference(dvn)
@@ -402,35 +402,35 @@ def kame_animate():
         A = {n: bpy.data.objects[o].matrix_world.translation.copy() for n, o in names.items()}
         core = ka["core"].matrix_world.translation.copy()
         o = f - K
-        if o < K_B:                          # A: "Ka…me…" trung cảnh thấp phía trước-phải, đẩy máy chậm
+        if o < K_B:                          # A: "Ka…me…" low medium shot front-right, slow push-in
             t = ease(o / (K_B - 1))
-            eye = A["gc"] + lerp(Vector((2.6, -2.15, -0.12)), Vector((1.85, -1.55, -0.1)), t)   # thấy cả mặt nước dưới chân
+            eye = A["gc"] + lerp(Vector((2.6, -2.15, -0.12)), Vector((1.85, -1.55, -0.1)), t)   # water surface below the feet visible too
             tgt_, lens, roll = A["gc"] + lerp(Vector((0, -0.05, -0.62)), Vector((0, -0.05, -0.4)), t), lerp(27, 31, t), lerp(-3, 2, t)
-        elif o < K_C:                        # B: "Ha…me…" cận hai bàn tay tụ khí, mặt Goku ở trên
+        elif o < K_C:                        # B: "Ha…me…" close on both hands gathering Ki, Goku's face above
             t = ease((o - K_B) / (K_C - K_B - 1))
             eye = core + lerp(Vector((0.95, -0.72, 0.22)), Vector((0.78, -0.6, 0.18)), t)
             tgt_, lens, roll = lerp(core, A["gh"], 0.55), 34, lerp(4, 0, t)
-        elif o < K_D:                        # C: Frieza sững người (nhìn từ phía Goku)
+        elif o < K_D:                        # C: Frieza freezes (seen from Goku's side)
             t = ease((o - K_C) / (K_D - K_C - 1))
             eye = A["fh"] + lerp(Vector((-1.05, -0.38, 0.03)), Vector((-0.82, -0.3, 0.02)), t)
             tgt_, lens, roll = A["fh"] + Vector((0, 0, -0.04)), 42, 0
-        elif o < K_E:                        # D: "HA!" qua vai Goku, tia lao ra biển
+        elif o < K_E:                        # D: "HA!" over Goku's shoulder, beam shoots across the sea
             t = ease((o - K_D) / (K_E - K_D - 1))
             eye = A["gc"] + lerp(Vector((-1.1, -0.55, 0.3)), Vector((-1.4, -0.62, 0.36)), t)
             tgt_, lens, roll = A["gc"] + Vector((3.2, 0.2, 0.12)), 30, lerp(0, -3, t)
-        elif o < K_F:                        # E: tia ập tới, Frieza khoanh tay đỡ rồi bị nuốt
+        elif o < K_F:                        # E: beam hits, Frieza crosses his arms to block then gets swallowed
             t = ease((o - K_E) / (K_F - K_E - 1))
-            # v26 lùi xa khối nổ: trước máy cách 2.6 m nên cầu nổ (bán kính tới 2 m) + glow phủ trắng cả khung ~0.5 s
+            # v26 pulled back from the blast: camera used to be 2.6 m away so the sphere (radius up to 2 m) + glow whited out the frame ~0.5 s
             eye = tgt + lerp(Vector((1.9, -4.6, 0.5)), Vector((2.5, -5.6, 0.8)), t)
             tgt_, lens, roll = tgt + Vector((-1.4, 0.2, 0.3)), 24, lerp(0, 4, t)
-        else:                                # F: toàn cảnh sau lưng Goku, cầu nổ phình trên biển
+        else:                                # F: wide shot behind Goku, blast sphere swelling over the sea
             t = ease((o - K_F) / (330 - K_F - 1))
-            # v26 lùi máy ra sau-phải: Goku trọn lưng ở 1/3 dưới-trái, tia dẫn mắt tới khối nổ (trước Goku bị cắt mép trái)
+            # v26 camera moved back-right: Goku's full back in the lower-left third, beam leads the eye to the blast (Goku was cut off at the left edge)
             eye = A["gc"] + lerp(Vector((-3.1, -1.25, 0.55)), Vector((-3.6, -1.45, 0.75)), t)
             tgt_, lens, roll = lerp(A["gc"], tgt, 0.36) + Vector((0, 0, 0.35)), 24, 0
         qq = (tgt_ - eye).to_track_quat("-Z", "Y") @ Quaternion((0, 0, 1), rad(roll))
         e = qq.to_euler("XYZ", prev) if (prev and f not in cuts) else qq.to_euler("XYZ")
-        if f in cuts and prev is not None:    # giữ hình shot trước tới sát cut (motion blur không nhoè qua cut)
+        if f in cuts and prev is not None:    # hold the previous shot right up to the cut (motion blur doesn't smear across the cut)
             cam.keyframe_insert("location", frame=f - 0.4); cam.keyframe_insert("rotation_euler", frame=f - 0.4)
             cd.keyframe_insert("lens", frame=f - 0.4)
         prev = e
@@ -441,7 +441,7 @@ def kame_animate():
     cd.keyframe_insert("lens", frame=KAME1 - 0.4)
     _set_interp([cam], k(0), KAME1, "LINEAR")
 
-    # ── track FX cho app ──
+    # ── FX tracks for the app ──
     fx = bpy.data.objects["FX"]
     def key(track, o, v, absolute=False):
         fx[track] = float(v)
@@ -475,7 +475,7 @@ def kame_animate():
             if k(0) <= kp.co.x <= KAME1 + 12:
                 kp.interpolation = "CONSTANT" if name == "impact" else "LINEAR"
 
-    # ── marker: cut, haptic, âm thanh ──
+    # ── markers: cut, haptic, sound ──
     def mk(o, name):
         scene.timeline_markers.new(name, frame=int(k(o)))
     mk(0, "cut")
@@ -492,15 +492,15 @@ def kame_animate():
     print("KAME", KAME0, KAME1, f"beam {L:.1f} m")
 
 
-# ── nước phản ứng (v25): Goku lướt sát mặt biển nên áp lực khí đẩy nước. Rơi theo trọng lực thật 9.8 m/s² ở 60 fps ──
-SEA_TOP = -0.65 + 0.012                       # mặt hộp "sea" (z -0.7, dày 0.1) + chút để không z-fight
+# ── water reaction (v25): Goku skims the sea surface, so the Ki pressure pushes the water. Real gravity 9.8 m/s² at 60 fps ──
+SEA_TOP = -0.65 + 0.012                       # top of the "sea" box (z -0.7, 0.1 thick) + a bit to avoid z-fighting
 G_ACC = 9.8 / 60.0 ** 2                       # m/frame²
 FOAM_COLS = [(0.0, "#F4FFFD"), (0.45, "#D2F1EE"), (0.78, "#93CFCF")]
 
 
 def _ripple_mat(name, col="#E2F7F4"):
-    """v27 bọt sóng: không còn là ống trắng đặc như vẽ bút dạ — bọt vỡ thành từng mảng theo nhiễu, và khi vòng loang
-    ra (alpha màu object giảm 1 → 0) ngưỡng nhiễu tăng dần nên bọt tan thành vụn rồi mất, như bọt thật vỡ trên mặt nước."""
+    """v27 foam: no longer a solid white tube like a marker stroke — the foam breaks into noise-driven patches, and as the ring
+    spreads (object color alpha drops 1 → 0) the noise threshold rises so the foam crumbles and vanishes, like real foam on water."""
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -515,7 +515,7 @@ def _ripple_mat(name, col="#E2F7F4"):
     nz = N.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 4.5; nz.inputs["Detail"].default_value = 2.0
     L.new(tc.outputs["Object"], nz.inputs["Vector"])
     oi = N.new("ShaderNodeObjectInfo")
-    thr = N.new("ShaderNodeMath"); thr.operation = "MULTIPLY_ADD"          # ngưỡng = 0.85 - 0.5·alpha
+    thr = N.new("ShaderNodeMath"); thr.operation = "MULTIPLY_ADD"          # threshold = 0.85 - 0.5·alpha
     thr.inputs[1].default_value, thr.inputs[2].default_value = -0.5, 0.85
     L.new(oi.outputs["Alpha"], thr.inputs[0])
     gt = N.new("ShaderNodeMath"); gt.operation = "GREATER_THAN"
@@ -532,7 +532,7 @@ def _kalpha(o, f, a):
 
 
 def _foam_ring(name, mat, seed=0):
-    """Vòng sóng bọt trên mặt nước: bán kính gợn méo nhẹ + bản dày mỏng không đều (không tròn như vẽ compa)."""
+    """Foam ring on the water: slightly wobbly radius + uneven band width (not compass-perfect)."""
     ob = torus(name, 1.0, 0.035, mat, C_ENV, seg=96, ring=6, scale=(1, 1, 0.3), outline=0)
     rng = random.Random(500 + seed)
     p1, p2, p3 = (rng.uniform(0, math.tau) for _ in range(3))
@@ -540,7 +540,7 @@ def _foam_ring(name, mat, seed=0):
         a = math.atan2(v.co.y, v.co.x)
         rr = math.hypot(v.co.x, v.co.y)
         wob = 1 + 0.035 * math.sin(3 * a + p1) + 0.02 * math.sin(7 * a + p2)
-        th = 0.75 + 0.45 * (0.5 + 0.5 * math.sin(5 * a + p3))   # bản bọt chỗ dày chỗ mỏng
+        th = 0.75 + 0.45 * (0.5 + 0.5 * math.sin(5 * a + p3))   # foam band thick in places, thin in others
         r_new = (1.0 + (rr - 1.0) * th) * wob
         v.co.x, v.co.y = math.cos(a) * r_new, math.sin(a) * r_new
     ob.visible_shadow = False
@@ -548,7 +548,7 @@ def _foam_ring(name, mat, seed=0):
 
 
 def _crown(name, mat, rng, n=26, top=1.0):
-    """Vương miện nước: vách nước thấp loe miệng + các tia nước nhọn tách rời toả ra ngoài như nước bị nổ hất tung."""
+    """Water crown: a low flared wall of water + separate pointed jets spraying outward like water blasted up by an explosion."""
     bm = bmesh.new()
     lo, mid = [], []
     for i in range(n):
@@ -559,7 +559,7 @@ def _crown(name, mat, rng, n=26, top=1.0):
     for i in range(n):
         j = (i + 1) % n
         bm.faces.new((lo[i], lo[j], mid[j], mid[i]))
-        if rng.random() < 0.8:                    # tia nước: mũi nhọn chếch ra ngoài, cao thấp không đều
+        if rng.random() < 0.8:                    # jets: sharp tips angled outward, uneven heights
             am = math.tau * (i + 0.5 + rng.uniform(-0.25, 0.25)) / n
             rr = rng.uniform(1.3, 1.65)
             tip = bm.verts.new((math.cos(am) * rr, math.sin(am) * rr, top * rng.uniform(0.7, 1.4)))
@@ -570,13 +570,13 @@ def _crown(name, mat, rng, n=26, top=1.0):
 
 
 def _wake_mesh(name, mat, rng, n=48):
-    """Hai vách bọt răng cưa dọc +X (0..1): nước dưới đường tia bị thổi dạt ra hai bên."""
+    """Two jagged foam walls along +X (0..1): water under the beam path blown apart to both sides."""
     bm = bmesh.new()
     for side in (-1, 1):
         for i in range(n):
             x0, x1 = i / n, (i + 1) / n
             xm = (x0 + x1) / 2 + rng.uniform(-0.3, 0.3) / n
-            h = rng.uniform(0.45, 1.0) * (1 - 0.65 * max(0.0, min(1.0, (x0 - 0.72) / 0.28)))   # sát khối nổ: vương miện lấn át
+            h = rng.uniform(0.45, 1.0) * (1 - 0.65 * max(0.0, min(1.0, (x0 - 0.72) / 0.28)))   # near the blast: the crown takes over
             w0 = side * 0.18
             a = bm.verts.new((x0, w0, 0)); b = bm.verts.new((x1, w0, 0))
             t = bm.verts.new((xm, side * (0.18 + 0.32 * h), h))
@@ -590,17 +590,17 @@ def kame_water_build():
     M["foam"] = _kame_mat("kame_foam", FOAM_COLS, blend=0.35, energy=0.0)
     rng = random.Random(77)
     M["ripple"] = _ripple_mat("kame_ripple")
-    # v29 giọt nước: lõi sáng, mép xanh ngọc (trước dùng chung bọt trắng → giọt như quả trứng trắng)
+    # v29 droplets: bright core, cyan rim (they used to share the white foam → droplets looked like white eggs)
     M["drop"] = _kame_mat("kame_drop_m", [(0.0, "#F2FFFD"), (0.35, "#B4E6E6"), (0.7, "#5FB2C2")], blend=0.3, energy=0.0)
-    # v28 vương miện nước: tông nước biển thật (lõi xanh băng nhạt → xanh ngọc → mép xanh lam), trước trắng gần như bọt
-    # nên cận cảnh vụ nổ cả khung cháy trắng
+    # v28 water crown: real sea-water tones (pale ice-blue core → cyan → blue rim); it used to be almost foam-white
+    # so the close-up of the blast burned the whole frame white
     M["crown"] = _kame_mat("kame_crown_m", [(0.0, "#D8F5F2"), (0.3, "#9AD6D8"), (0.62, "#4DA3B6"), (0.85, "#2E7F9C")],
                            blend=0.35, energy=0.0)
     W = dict(ripples=[_foam_ring(f"kame_ripple_{i}", M["ripple"], i) for i in range(5)],
              drops=[], wake=_wake_mesh("kame_wake", M["foam"], rng),
              crown=_crown("kame_crown", M["crown"], rng), crown2=_crown("kame_crown2", M["crown"], rng, n=28, top=0.6),
              wave=_foam_ring("kame_wave", M["ripple"], 9))
-    # ánh tia phản chiếu trên mặt nước: dải sáng thuôn hai đầu dọc +X (0..1) + vũng sáng tròn dưới vụ nổ
+    # beam reflection on the water: a strip tapered at both ends along +X (0..1) + a round pool of light under the blast
     M["glint"] = flat("kame_glint", "#BDF2FF", 1.0, energy=0.55)
     bm = bmesh.new()
     n = 40
@@ -618,7 +618,7 @@ def kame_water_build():
     for o in (W["glint"], W["pool"]):
         o.visible_shadow = False
         kvis([o], 0, False)
-    # hơi nước: năng lượng nổ sát mặt biển làm nước sôi bốc hơi → cụm mây cel phồng lên quanh chân khối nổ rồi bay lên
+    # steam: the blast right at the sea surface boils the water into steam → cel cloud puffs swell around the blast base and rise
     M["steam"] = _kame_mat("kame_steam", [(0.0, "#F2FAFA"), (0.5, "#D6E9EC"), (0.8, "#A9C6CC")], blend=0.45, energy=0.0)
     stex = bpy.data.textures.new("kame_steam_n", "CLOUDS"); stex.noise_scale, stex.noise_depth = 0.45, 1
     W["steam"] = []
@@ -634,7 +634,7 @@ def kame_water_build():
         d.visible_shadow = False
         d.rotation_mode = "QUATERNION"
         W["drops"].append(d)
-    W["spray"] = []                                # v27 nước vương miện bị hất tung rồi rơi lại
+    W["spray"] = []                                # v27 crown water flung up then falling back down
     for i in range(36):
         d = sphere(f"kame_spray_{i}", 1.0, M["drop"], C_ENV, seg=10, outline=0)
         d.visible_shadow = False
@@ -654,7 +654,7 @@ def kame_water_animate(gp, p0, tgt, beam_keys, dvn):
     def kscale(o, f, sx, sz=None):
         o.scale = (sx, sx, sx if sz is None else sz); o.keyframe_insert("scale", frame=f)
 
-    # sóng tròn dưới chân: mỗi vòng loang ra rồi tan, khí càng mạnh vòng càng rộng và dồn dập
+    # round ripples under the feet: each ring spreads then fades; the stronger the Ki, the wider and denser the rings
     rip = W["ripples"]
     for i, r in enumerate(rip[:4]):
         r.location = base
@@ -665,15 +665,15 @@ def kame_water_animate(gp, p0, tgt, beam_keys, dvn):
             kvis([r], k(o), True); kscale(r, k(o), 0.35, 1.0); _kalpha(r, k(o), 1.0)
             kscale(r, k(o + period), 1.6 + 2.4 * inten, 1.0); kvis([r], k(o + period), False)
             _kalpha(r, k(o + period * 0.4), 0.8); _kalpha(r, k(o + period), 0.0)
-            o += period + 1                        # vòng mới bắt đầu sau frame ẩn (key đầu vòng không đè key cuối vòng trước)
-    fire = rip[4]                                  # phản lực lúc bắn: một vòng sóng lớn loang nhanh
+            o += period + 1                        # new ring starts after the hidden frame (its first key doesn't override the last key of the previous ring)
+    fire = rip[4]                                  # recoil on firing: one big ring spreading fast
     fire.location = base
     kvis([fire], k(K_FIRE), True); kscale(fire, k(K_FIRE), 0.5, 1.4)
     kscale(fire, k(K_FIRE + 12), 5.0, 1.4); kscale(fire, k(K_FIRE + 40), 9.0, 1.0); kvis([fire], k(K_FIRE + 40), False)
     for o, a in ((K_FIRE, 1.0), (K_FIRE + 12, 0.75), (K_FIRE + 40, 0.0)):
         _kalpha(fire, k(o), a)
 
-    # bọt nước bị khí hất lên rồi rơi theo trọng lực (đường đạn thật), hết đợt lại bắn tiếp
+    # water spray flung up by the Ki then falling under gravity (real ballistics), fired again after each burst
     rng = random.Random(88)
     for d in W["drops"]:
         f = 30 + rng.uniform(0, 40)
@@ -685,13 +685,13 @@ def kame_water_animate(gp, p0, tgt, beam_keys, dvn):
             vh = rng.uniform(0.6, 1.6) * (0.5 + 0.5 * inten) / 60.0
             T = 2 * vz / G_ACC
             dirv = Vector((math.cos(a), math.sin(a), 0))
-            s = rng.uniform(0.016, 0.034)             # v27: nhỏ hơn (trước to như quả trứng)
+            s = rng.uniform(0.016, 0.034)             # v27: smaller (they used to be egg-sized)
             f0 = int(f)
             kvis([d], k(f0), True)
             for t in list(range(0, int(T), 2)) + [int(T)]:
                 d.location = base + dirv * (r0 + vh * t) + Vector((0, 0, vz * t - 0.5 * G_ACC * t * t))
                 d.keyframe_insert("location", frame=k(f0 + t))
-                vel = dirv * vh + Vector((0, 0, vz - G_ACC * t))           # giọt kéo dài theo vận tốc (nhoè chuyển động)
+                vel = dirv * vh + Vector((0, 0, vz - G_ACC * t))           # droplets stretched along velocity (motion smear)
                 d.rotation_quaternion = vel.to_track_quat("Z", "Y")
                 d.keyframe_insert("rotation_quaternion", frame=k(f0 + t))
                 ss = s * (1.0 if t < T * 0.7 else 0.7)
@@ -700,7 +700,7 @@ def kame_water_animate(gp, p0, tgt, beam_keys, dvn):
             f = f0 + T + 2 + rng.uniform(0, 14)
         d.keyframe_insert("location", frame=k(330))
 
-    # vệt bọt dưới đường tia: chạy theo đầu tia (trễ 3 frame), dâng lên rồi sụp khi tia tắt
+    # foam streak under the beam path: follows the beam head (3 frames late), rises then collapses when the beam stops
     wk = W["wake"]
     flat_d = Vector((dvn.x, dvn.y, 0))
     hdist = flat_d.length
@@ -713,7 +713,7 @@ def kame_water_animate(gp, p0, tgt, beam_keys, dvn):
     for o, sz in ((290, 1.1), (306, 0.7), (320, 0.05)):
         wk.scale = (wk.scale.x, 1.2, sz); wk.keyframe_insert("scale", frame=k(o))
     kvis([wk], k(321), False)
-    gl = W["glint"]                                # ánh tia trên mặt nước chạy theo đầu tia, tắt cùng tia
+    gl = W["glint"]                                # beam glint on the water follows the beam head, goes off with the beam
     gl.location = Vector((p0.x, p0.y, SEA_TOP + 0.006))
     gl.rotation_euler = wk.rotation_euler
     kvis([gl], k(K_FIRE + 1), True)
@@ -722,7 +722,7 @@ def kame_water_animate(gp, p0, tgt, beam_keys, dvn):
     for o, sy in ((290, 0.7), (306, 0.3), (318, 0.02)):
         gl.scale = (gl.scale.x, sy, 1); gl.keyframe_insert("scale", frame=k(o))
     kvis([gl], k(319), False)
-    pool = W["pool"]                               # vụ nổ rọi xuống mặt nước: vũng sáng to theo khối nổ rồi tắt
+    pool = W["pool"]                               # blast lights up the water: light pool grows with the blast then fades
     pool.location = Vector((tgt.x, tgt.y, SEA_TOP + 0.007))
     kvis([pool], k(K_HIT), True)
     for o, sx in ((K_HIT, 0.4), (K_HIT + 6, 2.2), (270, 3.2), (300, 3.8), (322, 4.2), (329, 0.05)):
@@ -730,7 +730,7 @@ def kame_water_animate(gp, p0, tgt, beam_keys, dvn):
     kvis([pool], k(329), False)
     _set_interp([gl, pool], k(0), KAME1, "LINEAR")
 
-    # vụ nổ ngay trên mặt nước: sóng xung kích chạm nước sau ~3 frame → vương miện nước phun cao, sụp dần; sóng lớn loang xa
+    # blast right above the water: the shockwave hits the water after ~3 frames → crown sprays high, slumps; big wave spreads far
     under = Vector((tgt.x, tgt.y, SEA_TOP))
     cr, cr2, wave = W["crown"], W["crown2"], W["wave"]
     for o in (cr, cr2, wave):
@@ -747,8 +747,8 @@ def kame_water_animate(gp, p0, tgt, beam_keys, dvn):
     for o, a in ((K_HIT + 3, 1.0), (K_HIT + 20, 0.8), (K_HIT + 60, 0.4), (329, 0.05)):
         _kalpha(wave, k(o), a)
     kvis([cr, cr2, wave], KAME1, False)
-    # v27 nước bị nổ hất tung rơi trở lại: giọt lớn văng ra từ thành vương miện theo đường đạn (g thật), rơi xuống biển
-    # (trước vương miện chỉ co lại theo scale, nước "biến mất" trên không)
+    # v27 water blasted up falls back down: big droplets thrown from the crown wall along ballistic arcs (real g), into the sea
+    # (before, the crown just shrank via scale and the water "vanished" in mid-air)
     rs2 = random.Random(1234)
     for d in W["spray"]:
         f0 = K_HIT + 4 + int(rs2.uniform(0, 14))
@@ -757,7 +757,7 @@ def kame_water_animate(gp, p0, tgt, beam_keys, dvn):
         r0, h0 = rs2.uniform(1.4, 2.4), rs2.uniform(1.2, 3.6)
         vz, vh = rs2.uniform(0.5, 4.0) / 60.0, rs2.uniform(1.5, 4.0) / 60.0
         sz = rs2.uniform(0.035, 0.075)
-        T = (vz + math.sqrt(vz * vz + 2 * G_ACC * h0)) / G_ACC          # lúc chạm mặt biển
+        T = (vz + math.sqrt(vz * vz + 2 * G_ACC * h0)) / G_ACC          # time to hit the sea surface
         end = min(329 - f0, int(T))
         kvis([d], k(f0), True)
         for t in list(range(0, end, 2)) + [end]:
@@ -768,11 +768,11 @@ def kame_water_animate(gp, p0, tgt, beam_keys, dvn):
             d.keyframe_insert("rotation_quaternion", frame=k(f0 + t))
             d.scale = (sz, sz, sz * (1 + 18 * vel.length)); d.keyframe_insert("scale", frame=k(f0 + t))
         kvis([d], k(f0 + end + 1), False)
-        if end == int(T):                                  # chạm biển trước khi cắt cảnh → tiếng tõm (synth_audio.py)
+        if end == int(T):                                  # hits the sea before the cut → plop sound (synth_audio.py)
             bpy.context.scene.timeline_markers.new("sfx:plop", frame=k(f0 + end))
     _set_interp(W["spray"], k(0), KAME1, "LINEAR")
     rs = random.Random(99)
-    for i, st in enumerate(W["steam"]):          # hơi bốc: nở dần, trôi lên + toả ra, chậm lại về cuối
+    for i, st in enumerate(W["steam"]):          # steam: grows, drifts up + outward, slows toward the end
         ang = math.tau * i / len(W["steam"]) + rs.uniform(-0.3, 0.3)
         out = Vector((math.cos(ang), math.sin(ang), 0))
         s0 = K_HIT + 12 + rs.uniform(0, 14)

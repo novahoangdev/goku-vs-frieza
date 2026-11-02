@@ -1,7 +1,7 @@
-# Clip demo đăng X (4:3, kiểu "phone mockup"): iPhone 3D khung titan phát bản quay màn hình app,
-# nền gradient đổi màu theo từng đoạn phim, chữ lớn phía sau máy, camera zoom/nghiêng theo nhịp, end card.
+# Demo clip for X (4:3, "phone mockup" style): a 3D titanium-frame iPhone plays the app screen recording,
+# gradient background changing color per film section, big text behind the phone, camera zooms/tilts on the beat, end card.
 #
-# Chạy: Blender -b --factory-startup -P blender/scripts/promo.py -- \
+# Run: Blender -b --factory-startup -P blender/scripts/promo.py -- \
 #         --screen render/promo/screen.mp4 --film-start 3.0 --out render/promo/frames [--pct 100]
 import bpy, bmesh, json, math, os, sys
 from mathutils import Vector
@@ -9,14 +9,14 @@ from mathutils import Vector
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 arg = lambda k, d: argv[argv.index(k) + 1] if k in argv else d
 SCREEN = os.path.abspath(arg("--screen", "render/promo/screen.mp4"))
-FILM0 = float(arg("--film-start", "3.0"))      # giây trong bản quay màn hình lúc phim bắt đầu
+FILM0 = float(arg("--film-start", "3.0"))      # second in the screen recording where the film starts
 OUT = os.path.abspath(arg("--out", "render/promo/frames"))
 PCT = int(arg("--pct", "100"))
-LABEL = arg("--label", "")                     # nhãn nhỏ góc dưới trái (vd "v3"), để so sánh các bản
+LABEL = arg("--label", "")                     # small label in the bottom-left corner (e.g. "v3"), for comparing versions
 FPS = 60
-P_FILM = 3.0                                   # phim bắt đầu ở giây 3 của clip promo
-# phim đã giãn nhịp (retime.py): mọi mốc bên dưới viết theo clip của phim 20 s gốc (phim bắt đầu ở P_FILM)
-# → F() quy đổi sang clip mới; FR() là giây thật của clip mới
+P_FILM = 3.0                                   # the film starts at second 3 of the promo clip
+# the film is retimed (retime.py): every cue below is written against the clip of the original 20 s film (film starts at P_FILM)
+# → F() converts to the new clip; FR() is the real second of the new clip
 _TL = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "app", "assets", "cinematic", "timeline.json")))
 _RT = _TL.get("retime", [[0, 0], [1200, 1200]])
 FILM = _TL["frames"] / _TL["fps"]
@@ -31,7 +31,7 @@ def _rts(sec):
 
 
 DUR = P_FILM + FILM + 4.0
-# đoạn Kamehameha (v23) chèn giữa phim: không quy đổi được từ giây phim gốc → lấy thẳng từ marker (giây thật)
+# Kamehameha sequence (v23) inserted mid-film: can't be converted from original film seconds → read straight from the markers (real seconds)
 _KM = {m["name"]: P_FILM + m["f"] / FPS for m in _TL["markers"] if m["name"].startswith("kame:")}
 KAME = all(k in _KM for k in ("kame:start", "kame:fire", "kame:hit", "kame:end"))
 FR = lambda sec: round(sec * FPS)
@@ -72,13 +72,13 @@ def link(ob):
     return ob
 
 
-# ── nền: mặt phẳng phát sáng, gradient dọc 2 màu, đổi theo đoạn + quầng sáng sau máy ──
-SECTIONS = [  # (giây bắt đầu, màu trên, màu dưới)
+# ── background: emissive plane, 2-color vertical gradient, changing per section + glow behind the phone ──
+SECTIONS = [  # (start second, top color, bottom color)
     (0.0, "#0E2620", "#2F6B57"),     # Namek
     (8.0, "#3A1E05", "#F0A51E"),     # Super Saiyan
     (11.5, "#190A2C", "#7B3FBF"),    # Frieza
-    (16.0, "#05272C", "#2E9093"),    # truy đuổi
-    (19.5, "#2A0606", "#E2522B"),    # phản đòn
+    (16.0, "#05272C", "#2E9093"),    # chase
+    (19.5, "#2A0606", "#E2522B"),    # counterattack
     (23.0, "#1C1306", "#D59A27"),    # end card
 ]
 bg_me = bpy.data.meshes.new("bg")
@@ -99,7 +99,7 @@ Lk.new(sep.outputs["Y"], mix.inputs["Factor"])
 ca = [s for s in mix.inputs if s.name == "A" and s.type == "RGBA"][0]
 cb = [s for s in mix.inputs if s.name == "B" and s.type == "RGBA"][0]
 Lk.new(bot.outputs[0], ca); Lk.new(top.outputs[0], cb)
-# quầng sáng tròn giữa
+# round glow in the middle
 grad = N.new("ShaderNodeTexGradient"); grad.gradient_type = "SPHERICAL"
 mp = N.new("ShaderNodeMapping"); mp.inputs["Location"].default_value = (0.5, 0.5, 0); mp.inputs["Scale"].default_value = (1.6, 2.1, 1)
 sub = N.new("ShaderNodeVectorMath"); sub.operation = "SUBTRACT"; sub.inputs[1].default_value = (0.5, 0.5, 0)
@@ -114,19 +114,19 @@ em = N.new("ShaderNodeEmission"); Lk.new(add.outputs[2], em.inputs["Color"])
 out = N.new("ShaderNodeOutputMaterial"); Lk.new(em.outputs[0], out.inputs[0])
 bg_me.materials.append(bgm)
 SEC_F = [(F(t0), ct, cbm) for t0, ct, cbm in SECTIONS]
-if KAME:                                       # xanh Kamehameha, rồi vàng kết trước end card
+if KAME:                                       # Kamehameha blue, then gold for the ending before the end card
     SEC_F += [(FR(_KM["kame:start"]), "#04122E", "#2F86E8"), (FR(_KM["kame:end"]), "#2A1A05", "#E0A030")]
     SEC_F.sort()
 for i, (f0, ct, cbm) in enumerate(SEC_F):
     keys = [(f0, ct, cbm)]
     if i:
-        keys.insert(0, (f0 - 5, SEC_F[i - 1][1], SEC_F[i - 1][2]))   # chuyển màu trong 5 frame
+        keys.insert(0, (f0 - 5, SEC_F[i - 1][1], SEC_F[i - 1][2]))   # color transition over 5 frames
     for f, a, b in keys:
         top.outputs[0].default_value, bot.outputs[0].default_value = hexc(a), hexc(b)
         top.outputs[0].keyframe_insert("default_value", frame=f)
         bot.outputs[0].keyframe_insert("default_value", frame=f)
 
-# ── world: phản chiếu lên khung titan ──
+# ── world: reflections on the titanium frame ──
 w = bpy.data.worlds.new("w"); sc.world = w; w.use_nodes = True
 w.node_tree.nodes["Background"].inputs["Color"].default_value = hexc("#B9B4AE")
 w.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.6
@@ -146,7 +146,7 @@ PW, PH, PR, THICK = 1.0, 2.13, 0.16, 0.09
 SW = PW - 0.06
 SH = SW * 2622 / 1206
 phone = link(bpy.data.objects.new("PHONE", None))
-# khung
+# frame
 me = bpy.data.meshes.new("body"); bm = bmesh.new()
 f0 = rounded_rect(bm, PW, PH, PR, -THICK / 2)
 ext = bmesh.ops.extrude_face_region(bm, geom=[f0])
@@ -162,7 +162,7 @@ bsdf.inputs["Base Color"].default_value = hexc("#8F8A83"); bsdf.inputs["Metallic
 me.materials.append(ti)
 body.parent = phone
 body.rotation_euler = (rad(90), 0, 0)
-# kính đen + màn hình
+# black glass + screen
 for name, wdt, hgt, r, yoff, kind in (("glass", PW - 0.012, PH - 0.012, PR - 0.006, -THICK / 2 - 0.004, "black"),
                                       ("screen", SW, SH, PR - 0.035, -THICK / 2 - 0.006, "screen")):
     me = bpy.data.meshes.new(name); bm = bmesh.new()
@@ -186,7 +186,7 @@ for name, wdt, hgt, r, yoff, kind in (("glass", PW - 0.012, PH - 0.012, PR - 0.0
         tex.image = img
         iu = tex.image_user
         iu.frame_duration = 100000
-        iu.frame_start = F(P_FILM) - round(FILM0 * FPS)   # frame promo đầu tiên của bản quay
+        iu.frame_start = F(P_FILM) - round(FILM0 * FPS)   # first promo frame of the recording
         iu.use_auto_refresh = True
         iu.use_cyclic = False
         e = n.new("ShaderNodeEmission"); e.inputs["Strength"].default_value = 1.0
@@ -200,7 +200,7 @@ bm.to_mesh(me); bm.free()
 isl = link(bpy.data.objects.new("island", me))
 isl.parent = phone; isl.rotation_euler = (rad(90), 0, 0); isl.location = (0, -THICK / 2 - 0.008, SH / 2 - 0.075)
 me.materials.append(mat_emit("island", "#000000")[0])
-# nút bên
+# side buttons
 for i, (x, z, hh) in enumerate(((PW / 2 + 0.006, 0.45, 0.22), (-PW / 2 - 0.006, 0.55, 0.12), (-PW / 2 - 0.006, 0.3, 0.16), (-PW / 2 - 0.006, 0.08, 0.16))):
     me = bpy.data.meshes.new(f"btn{i}"); bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1); bmesh.ops.scale(bm, vec=(0.02, 0.04, hh), verts=bm.verts)
@@ -211,7 +211,7 @@ key = bpy.data.lights.new("key", "AREA"); key.energy, key.size = 900, 6
 kl = link(bpy.data.objects.new("key", key)); kl.location = (-4, -5, 5); kl.rotation_euler = (rad(50), 0, rad(-40))
 
 
-# ── chữ ──
+# ── text ──
 def text(name, body, font, size, color, loc, strength=1.0, align="CENTER", extrude=0.0):
     cu = bpy.data.curves.new(name, "FONT")
     cu.body, cu.size, cu.align_x, cu.align_y, cu.extrude = body, size, align, "CENTER", extrude
@@ -251,10 +251,10 @@ for ob in end:
     ob.scale = (0.85, 0.85, 0.85); ob.keyframe_insert("scale", frame=FR(P_FILM + FILM + 0.4))
     ob.scale = (1, 1, 1); ob.keyframe_insert("scale", frame=FR(P_FILM + FILM + 0.9))
 
-# ── chuyển động: camera + máy ──
+# ── motion: camera + phone ──
 cam_d = bpy.data.cameras.new("cam"); cam_d.lens = 50; cam_d.sensor_fit = "VERTICAL"; cam_d.sensor_height = 24
 cam = link(bpy.data.objects.new("cam", cam_d)); sc.camera = cam
-if LABEL:                                      # gắn vào camera nên đứng yên một góc màn hình
+if LABEL:                                      # parented to the camera so it stays fixed in a screen corner
     lb = text("label", LABEL, DIN, 0.032, "#FFFFFF", (0, 0, 0), 0.75, align="LEFT")
     lb.parent = cam
     lb.location, lb.rotation_euler = (-0.6, -0.43, -2.0), (0, 0, 0)
@@ -274,17 +274,17 @@ p = P_FILM
 kc(0, 0, -10.5, 0); kp(0, 10, 0, -28)
 kc(p, 0, -7.6, 0); kp(p, 0, 0, -6)
 kc(p + 4.0, 0, -6.6, 0.1); kp(p + 4.0, 0, 0, 0)
-kc(p + 4.9, 0, -3.0, 0.35)                                  # zoom vào cảnh cận mắt
-kc(p + 5.05, 0, -8.6, 0); kp(p + 5.05, 0, 0, 0)            # crash zoom-out đúng lúc nổ
+kc(p + 4.9, 0, -3.0, 0.35)                                  # zoom in on the eye close-up
+kc(p + 5.05, 0, -8.6, 0); kp(p + 5.05, 0, 0, 0)            # crash zoom-out right on the blast
 kc(p + 6.5, 0, -7.4, 0); kp(p + 6.5, -4, 0, 4)
 kc(p + 8.5, -0.5, -7.2, 0); kp(p + 8.5, -6, 0, 20)
 kp(p + 10.0, 2, 0, -14)
 kc(p + 13.0, 0.3, -6.6, 0); kp(p + 13.0, 0, 3, -6)
 kp(p + 14.2, 4, -6, 12); kp(p + 15.4, -2, 6, -12); kp(p + 16.4, 0, 0, 4)
 kc(p + 16.4, 0, -7.0, 0)
-kc(p + 17.1, 0, -4.2, 0.1)                                  # zoom vào cú đấm
+kc(p + 17.1, 0, -4.2, 0.1)                                  # zoom in on the punch
 kc(p + 17.6, 0, -7.8, 0); kp(p + 17.6, 0, 0, 0)
-if KAME:                                       # Kamehameha: nghiêng máy lúc tụ khí, zoom sát lúc "HA!", lùi ra khi nổ
+if KAME:                                       # Kamehameha: tilt the camera while gathering Ki, zoom in tight on "HA!", pull back on the blast
     ks, kf, kh, ke = _KM["kame:start"], _KM["kame:fire"], _KM["kame:hit"], _KM["kame:end"]
     kc(ks + 0.2, 0, -7.4, 0, raw=True); kp(ks + 0.2, -3, 0, 10, raw=True)
     kc(kf - 0.15, 0, -5.4, 0.15, raw=True); kp(kf - 0.15, 0, 0, -4, raw=True)
@@ -298,7 +298,7 @@ for ob in (cam, phone):
     for fc in (ob.animation_data.action.fcurves if hasattr(ob.animation_data.action, "fcurves") else []):
         for k in fc.keyframe_points:
             k.interpolation, k.easing = "BEZIER", "AUTO"
-# rung khi nổ / đấm: camera là con của một Empty, rung trên Empty để không đụng keyframe di chuyển
+# shake on blasts / punches: the camera is a child of an Empty, shake the Empty so the move keyframes stay untouched
 rig = link(bpy.data.objects.new("shake", None))
 cam.parent = rig
 rig.location = (0, 0, 0); rig.keyframe_insert("location", frame=0)
@@ -312,9 +312,9 @@ for f0 in [F(p + 5.0), F(p + 17.17)] + ([FR(_KM["kame:fire"]), FR(_KM["kame:hit"
 os.makedirs(OUT, exist_ok=True)
 sc.render.image_settings.file_format = "PNG"
 STILLS = arg("--stills", "")
-if STILLS:                                     # duyệt nhanh vài khoảnh khắc (giây trong clip promo)
+if STILLS:                                     # quick review of a few moments (seconds in the promo clip)
     for sec in (float(x) for x in STILLS.split(",")):
-        sc.frame_set(FR(sec))                     # giây thật của clip mới
+        sc.frame_set(FR(sec))                     # real second of the new clip
         sc.render.filepath = os.path.join(OUT, f"still_{sec:05.2f}.png")
         bpy.ops.render.render(write_still=True)
     sys.exit(0)

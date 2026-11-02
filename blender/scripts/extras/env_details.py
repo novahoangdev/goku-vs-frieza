@@ -1,5 +1,5 @@
-# Chi tiết môi trường Namek: nhà mái vòm chi tiết hơn, cây Ajisa tán nhiều tầng, cụm đá + bụi cỏ quanh sân đấu,
-# mesa / cột đá nhỏ ở xa cho chiều sâu. Chạy sau build_scene (dùng chung globals). RNG riêng, không đụng `random`.
+# Namek environment details: more detailed domed houses, multi-tiered Ajisa trees, rock clusters + grass tufts around the arena,
+# small distant mesas / rock pillars for depth. Runs after build_scene (shared globals). Own RNG, doesn't touch `random`.
 import math as _m
 import random as _random_mod
 import bmesh as _bmesh
@@ -8,7 +8,7 @@ from mathutils import Vector as _V, Euler as _E
 
 _rng = _random_mod.Random(4242)
 _C = C_ENV
-ENV_DETAIL_OBJS = []          # dùng cho kiểm tra camera clipping
+ENV_DETAIL_OBJS = []          # used for the camera clipping check
 
 
 def _mat(name, fb):
@@ -16,20 +16,20 @@ def _mat(name, fb):
 
 
 _ROCK = _mat("rock_tex", M["rock"])
-_PEB = M.get("rock_small") or _mat("pebble_tex", M["rock"])   # đá nhỏ 3 tông có khối (build_scene.rock_small_mat)
+_PEB = M.get("rock_small") or _mat("pebble_tex", M["rock"])   # small 3-tone rocks with volume (build_scene.rock_small_mat)
 _LEAF = _mat("canopy_tex", M["canopy"])
 _TOP = _mat("top_tex", M["grass_top"])
 _SAMPLES = [chase_path(i / 200) for i in range(201)]
 
 
 def _clear(x, y, r=0.0, ztop=0.0):
-    """True nếu điểm (x,y) bán kính r an toàn: xa đường bay, xa tâm, xa vị trí Frieza (0, 9)."""
+    """True if point (x,y) with radius r is safe: away from the flight path, the center, and Frieza's position (0, 9)."""
     for p in _SAMPLES:
         if p.z - 0.0 < 12 + ztop and _m.hypot(p.x - x, p.y - y) < 4.5 + r:
             return False
-    if _m.hypot(x, y) < 4.0 + r:                                  # Goku + camera orbit thấp quanh Goku
+    if _m.hypot(x, y) < 4.0 + r:                                  # Goku + low camera orbit around Goku
         return False
-    if abs(x) < 3.5 + r and -11 < y < 13:                         # hành lang Goku ↔ Frieza (+ nền sau lưng Goku ở shot qua vai)
+    if abs(x) < 3.5 + r and -11 < y < 13:                         # Goku ↔ Frieza corridor (+ background behind Goku in the over-the-shoulder shot)
         return False
     return True
 
@@ -46,7 +46,7 @@ def _merge_into(bm, tmp, mat4=None, fn=None):
     _merge(bm, tmp)
 
 
-# ───────── 1. nhà mái vòm: khung cửa sổ, vòm cửa, chỏm ăng-ten, vòm phụ, bậc nền ─────────
+# ───────── 1. domed houses: window frames, door arch, antenna cap, side domes, base step ─────────
 def _houses():
     trim = M["house"]
     dark = M["window"]
@@ -73,22 +73,22 @@ def _houses():
     for i, (x, y, sz) in enumerate(specs):
         cz = sz * 0.25
         face = _m.atan2(-y, -x)
-        # khung tròn quanh 3 cửa sổ (torus mảnh, nằm trên mặt vòm)
+        # round frames around the 3 windows (thin torus, lying on the dome surface)
         for j in range(3):
             ang = face + (j - 1) * 0.55
             dv = _V((_m.cos(ang), _m.sin(ang), 0))
             rim = torus(f"house_{i}_winrim_{j}", sz * 0.15, sz * 0.03, trim, _C, seg=18, ring=6, outline=0.012)
             rim.location = _V((x, y, cz + sz * 0.42)) + dv * sz * 0.95
             rim.rotation_euler = dv.to_track_quat("Z", "Y").to_euler()
-        # vòm cửa ra vào: khung hình chữ U nổi
+        # door arch: raised U-shaped frame
         dv = _V((_m.cos(face + 1.2), _m.sin(face + 1.2), 0))
         arch = torus(f"house_{i}_doorrim", sz * 0.27, sz * 0.045, trim, _C, seg=20, ring=6, scale=(1, 1, 1.35), outline=0.012)
         arch.location = _V((x, y, cz + sz * 0.02)) + dv * sz * 1.0
         arch.rotation_euler = _E((_m.pi / 2, 0, _m.atan2(dv.y, dv.x) + _m.pi / 2))
-        # bậc nền (vành đế thấp)
+        # base step (low rim)
         base = cyl(f"house_{i}_plinth", sz * 1.06, sz * 1.1, 0.22, trim, _C, seg=28, outline=0.02)
         base.location = (x, y, 0.05)
-        # chỏm trên: cổ ngắn + bầu tròn + ăng-ten nhỏ với quả cầu
+        # top cap: short neck + round bulb + small antenna with a sphere
         top_z = cz + sz * 0.82
         neck = cyl(f"house_{i}_neck", sz * 0.16, sz * 0.12, sz * 0.18, trim, _C, seg=14, outline=0.015)
         neck.location = (x, y, top_z + sz * 0.05)
@@ -98,7 +98,7 @@ def _houses():
         ant.location = (x, y, top_z + sz * 0.5)
         tip = sphere(f"house_{i}_antball", sz * 0.06, M["house"], _C, seg=10, outline=0.008)
         tip.location = (x, y, top_z + sz * 0.77)
-        # vòm phụ nhỏ dính bên hông (kiểu nhà Namek nhiều bầu)
+        # small side dome attached to the side (Namek houses have many bulbs)
         if i % 2 == 0:
             sa = face - 1.4 + _rng.uniform(-0.3, 0.3)
             ss = sz * 0.55
@@ -113,7 +113,7 @@ def _houses():
             _reg(ob)
 
 
-# ───────── 2. cây Ajisa: tán nhiều tầng, xù hơn ─────────
+# ───────── 2. Ajisa trees: multi-tiered, fluffier canopies ─────────
 def _bushy_trees():
     for ob in list(_C.objects):
         if not ob.name.endswith("_canopy"):
@@ -123,7 +123,7 @@ def _bushy_trees():
         c = _V(ob.location)
         r = _random_mod.Random(sum(map(ord, ob.name)))
         bm = _bmesh.new()
-        # vòng búp phồng ngang thân tán + tầng dưới rủ + chỏm trên
+        # ring of buds bulging around the canopy middle + drooping lower tier + top cap
         layers = [(-0.35, 0.95, 7, 0.42), (0.05, 0.85, 6, 0.4), (0.45, 0.45, 4, 0.36)]
         for dz, rad, n, sr in layers:
             off = r.uniform(0, _m.tau)
@@ -146,7 +146,7 @@ def _bushy_trees():
         puff.visible_shadow = True
         _reg(puff)
         ob.scale = (ob.scale.x * 0.95, ob.scale.y * 0.95, ob.scale.z * 1.0)
-        # vài nhánh con chìa ra từ thân (cây Ajisa có thân mảnh, gốc loe)
+        # a few side branches sticking out of the trunk (Ajisa trees have slender trunks, flared bases)
         tr = _C.objects.get(base + "_trunk")
         if tr:
             h = tr.dimensions.z
@@ -154,7 +154,7 @@ def _bushy_trees():
             root.location = (tr.location.x, tr.location.y, tr.location.z - h / 2 + h * 0.09)
 
 
-# ───────── 3. cụm đá + bụi cỏ quanh sân đấu (r ~ 4–14 m) ─────────
+# ───────── 3. rock clusters + grass tufts around the arena (r ~ 4–14 m) ─────────
 def _ground_clutter():
     bm_rock = _bmesh.new()
     bm_grass = _bmesh.new()
@@ -180,12 +180,12 @@ def _ground_clutter():
                 q = rot @ _V((v.co.x * _rng.uniform(0.92, 1.08), v.co.y, v.co.z * sq))
                 v.co = q + _V((x + ox, y + oy, rr * sq * 0.45))
             _merge(bm_rock, tmp)
-        # bụi cỏ quanh chân đá: lá dẹt hình mũi giáo
+        # grass tufts around the rock base: flat spear-shaped blades
         for g in range(_rng.randint(2, 3)):
             ga = _rng.uniform(0, _m.tau)
             gx, gy = x + _m.cos(ga) * big * 1.6, y + _m.sin(ga) * big * 1.6
             _clump(bm_grass, gx, gy, _rng.uniform(0.8, 1.2))
-    # thêm bụi cỏ rời rạc
+    # extra scattered grass tufts
     tries = 0
     k = 0
     while k < 34 and tries < 800:
@@ -218,7 +218,7 @@ def _clump(bm, x, y, s):
         bm.faces.new((vl, vs[2], vs[3]))
 
 
-# ───────── 4. mesa + cột đá nhỏ ở xa (chiều sâu) ─────────
+# ───────── 4. distant mesas + small rock pillars (depth) ─────────
 def _distant():
     n = 0
     tries = 0
@@ -226,11 +226,11 @@ def _distant():
         tries += 1
         a, d = _rng.uniform(0, _m.tau), _rng.uniform(95, 170)
         x, y = _m.cos(a) * d, _m.sin(a) * d
-        if abs(y) < 22 and -10 < x < 110:      # chừa hướng bay
+        if abs(y) < 22 and -10 < x < 110:      # keep the flight direction clear
             continue
         if not _clear(x, y, 12):
             continue
-        if n % 3 == 0:      # mesa: khối trụ rộng, thấp, mặt bằng có cỏ
+        if n % 3 == 0:      # mesa: wide, low cylinder, flat grassy top
             r = _rng.uniform(7, 12)
             h = _rng.uniform(6, 14)
             body = cyl(f"env_mesa_{n}", r, r * 0.8, h, _ROCK, _C, seg=10, outline=0.08, smooth=False)
@@ -239,7 +239,7 @@ def _distant():
             top = cyl(f"env_mesa_{n}_top", r * 0.82, r * 0.8, 0.5, _TOP, _C, seg=10, outline=0.05, smooth=False)
             top.location = (x, y, -0.7 + h + 0.2)
             _reg(body)
-        else:               # cột mảnh, thuôn, nghiêng nhẹ
+        else:               # slender pillar, tapered, slightly tilted
             r = _rng.uniform(1.2, 2.4)
             h = _rng.uniform(14, 30)
             body = cyl(f"env_spirelet_{n}", r, r * 0.5, h, _ROCK, _C, seg=7, outline=0.05, smooth=False)
@@ -257,6 +257,6 @@ for _fn in (_houses, _bushy_trees, _ground_clutter, _distant):
         _fn()
     except Exception as _e:
         import traceback as _tb
-        print("env_details: lỗi ở", _fn.__name__, _e)
+        print("env_details: error in", _fn.__name__, _e)
         _tb.print_exc()
-print("env_details: thêm", len(ENV_DETAIL_OBJS), "đối tượng")
+print("env_details: added", len(ENV_DETAIL_OBJS), "objects")

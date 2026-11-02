@@ -1,11 +1,11 @@
-# Chi tiết trau chuốt cho Goku chibi: chữ 悟 trong vòng tròn sau lưng, nút thắt đai, viền cổ tay,
-# nét gấp vải, vệt sáng trên các lọn tóc, đường may giày. Chạy sau build_scene.py (dùng chung globals: G, M, helper...).
-# Không dời/đổi cỡ phần cũ; vật mới tên "gd_*" và chép khoá ẩn/hiện từ phần gốc (torso / tóc).
+# Polish details for chibi Goku: the 悟 kanji in a circle on the back, belt knot, wristband trims,
+# cloth fold lines, highlights on the hair locks, boot seams. Runs after build_scene.py (shared globals: G, M, helpers...).
+# Doesn't move/resize existing parts; new objects are named "gd_*" and copy visibility keys from the source part (torso / hair).
 from mathutils.bvhtree import BVHTree as _GD_BVH
 
 
 def _gd_vis_like(obs, ref):
-    """Chép các khoá hide_render của `ref` (vd. Goku biến mất lúc dịch chuyển, đổi dạng SSJ)."""
+    """Copy the hide_render keys of `ref` (e.g. Goku vanishing while teleporting, switching to SSJ form)."""
     try:
         ad = ref.animation_data
         keys = []
@@ -23,7 +23,7 @@ def _gd_vis_like(obs, ref):
 
 
 def _gd_bvh(target):
-    """BVH của mesh gốc (không outline) trong hệ toạ độ của parent của target."""
+    """BVH of the base mesh (without outline) in the coordinate space of target's parent."""
     mw = target.matrix_basis
     me = target.data
     return _GD_BVH.FromPolygons([mw @ v.co for v in me.vertices], [tuple(p.vertices) for p in me.polygons])
@@ -37,7 +37,7 @@ def _gd_project(bvh, p, d, off):
 
 
 def _gd_tube(name, pts, r, mat, col, parent, sides=6, taper=True, outline=0.0):
-    """Nét vẽ: ống mảnh chạy qua các điểm (toạ độ parent), thon hai đầu như nét mực."""
+    """Drawn stroke: a thin tube through the points (parent coords), tapered at both ends like an ink line."""
     bm = bmesh.new()
     n = len(pts)
     rings = []
@@ -61,7 +61,7 @@ def _gd_tube(name, pts, r, mat, col, parent, sides=6, taper=True, outline=0.0):
 
 
 def _gd_stroke(name, target, pts, dirfn, r, mat, col, off=0.0035, samples=14):
-    """Nét cong dán lên bề mặt `target`: nội suy Catmull-Rom qua pts rồi chiếu theo dirfn(p)."""
+    """Curved stroke stuck onto the surface of `target`: Catmull-Rom interpolation through pts, then projected along dirfn(p)."""
     bvh = _gd_bvh(target)
     P = [Vector(p) for p in pts]
     dense = []
@@ -79,7 +79,7 @@ def _gd_stroke(name, target, pts, dirfn, r, mat, col, off=0.0035, samples=14):
 
 
 def _gd_conform(name, target, verts2d, faces, plane, mat, col, off):
-    """Mesh phẳng (u, v) dán ôm lưng: (u, v) → điểm trên mặt phẳng `plane` rồi chiếu vào target."""
+    """Flat (u, v) mesh hugging the back: (u, v) → point on the `plane` plane, then projected onto target."""
     bvh = _gd_bvh(target)
     to3, d = plane
     bm = bmesh.new()
@@ -116,7 +116,7 @@ def _gd_disc(n_ring=6, n_seg=40, r=1.0):
 
 
 def _gd_text_mesh(ch, size):
-    """Chữ (font Hiragino) → (verts2d, faces) đã tam giác hoá, tâm ở gốc."""
+    """Text (Hiragino font) → triangulated (verts2d, faces), centered at the origin."""
     fc = bpy.data.curves.new("gd_tmp_txt", "FONT")
     fc.body = ch
     for path in FONT_PATHS:
@@ -150,7 +150,7 @@ def _gd_build():
     torso, hair_ssj, hair = obj["goku_torso"], obj["goku_hair_ssj"], obj["goku_hair_base"]
     body_new, ssj_new, base_new = [], [], []
     Mx = {
-        "gd_gi_line": flat("gd_gi_line", "#B04A14"),          # nét gấp vải: cam cháy, mềm hơn viền
+        "gd_gi_line": flat("gd_gi_line", "#B04A14"),          # cloth fold lines: burnt orange, softer than the outline
         "gd_blue_dk": toon("gd_blue_dk", "#1F3A8C", "#142660", "#3A5CC0", rim=0.5),
         "gd_seam": flat("gd_seam", "#16245E"),
         "gd_ssj_hl": flat("gd_ssj_hl", "#FFF8D6", 1.1, energy=0.15),
@@ -159,10 +159,10 @@ def _gd_build():
         "gd_white": flat("gd_white", "#FFFDF6"),
     }
 
-    # ── 1. vòng tròn chữ 悟 sau lưng (nhiều cảnh quay qua vai/sau lưng) ──
+    # ── 1. 悟 kanji circle on the back (many shots look over the shoulder / from behind) ──
     try:
         zc, R0 = 0.15, 0.078
-        back = (lambda u, v: Vector((-u, 0.4, zc + v)), Vector((0, -1, 0)))  # nhìn từ sau: phải người xem = -X
+        back = (lambda u, v: Vector((-u, 0.4, zc + v)), Vector((0, -1, 0)))  # seen from behind: viewer's right = -X
         dv, df = _gd_disc(r=R0 + 0.006)
         body_new.append(_gd_conform("gd_back_ring", torso, dv, df, back, Mx["gd_ink"], c, 0.0025))
         dv, df = _gd_disc(r=R0)
@@ -172,7 +172,7 @@ def _gd_build():
     except Exception as e:
         print("GD back kanji failed", e)
 
-    # ── 2. nút thắt đai phía trước ──
+    # ── 2. belt knot at the front ──
     try:
         k = sphere("gd_belt_knot", 1, M["blue"], c, (0.026, 0.017, 0.022), seg=16, outline=0.003)
         attach(k, G["hips"], (0.05, -0.128, 0.05))
@@ -180,7 +180,7 @@ def _gd_build():
     except Exception as e:
         print("GD belt knot failed", e)
 
-    # ── 3. cổ tay: gờ viền trên/dưới + đường gân ──
+    # ── 3. wrists: top/bottom trim ridges + rib lines ──
     try:
         for side in ("R", "L"):
             for j, z in enumerate((-0.107, -0.153)):
@@ -193,15 +193,15 @@ def _gd_build():
     except Exception as e:
         print("GD wrist failed", e)
 
-    # ── 4. nét gấp vải (mực cam cháy) trên lưng, hông và ống quần ──
+    # ── 4. cloth fold lines (burnt orange ink) on the back, hips and pant legs ──
     try:
         W = Mx["gd_gi_line"]
         back_dir = lambda p: Vector((0, -1, 0))
         for i, sx in enumerate((-1, 1)):
-            # nếp chéo dưới nách sau lưng
+            # diagonal folds under the armpits on the back
             body_new.append(_gd_stroke(f"gd_fold_back_{i}", torso,
                                        [(sx * 0.125, 0.4, 0.22), (sx * 0.112, 0.4, 0.19), (sx * 0.1, 0.4, 0.16)], back_dir, 0.0024, W, c))
-            # nếp ngực trước (dưới cổ áo) – chỉ bên không có chữ
+            # front chest folds (under the collar) – only on the side without the kanji
             if sx < 0:
                 body_new.append(_gd_stroke("gd_fold_front", torso,
                                            [(-0.118, -0.4, 0.2), (-0.095, -0.4, 0.17), (-0.088, -0.4, 0.135)],
@@ -209,7 +209,7 @@ def _gd_build():
         for side, sx in (("R", -1), ("L", 1)):
             th = obj[f"goku_thigh_{side}"]
             rad_in = lambda p: Vector((-p.x, -p.y, 0)).normalized() if Vector((p.x, p.y)).length > 1e-4 else Vector((0, 1, 0))
-            # nếp xếp bên hông quần + nếp chữ V phía trước đùi
+            # pleats on the side of the pants + V-shaped folds on the front of the thighs
             body_new.append(_gd_stroke(f"gd_fold_thigh_{side}", th,
                                        [(sx * 0.2, 0.0, -0.06), (sx * 0.2, -0.02, -0.11), (sx * 0.2, 0.01, -0.16)], rad_in, 0.0023, W, c))
             body_new.append(_gd_stroke(f"gd_fold_thighf_{side}", th,
@@ -219,7 +219,7 @@ def _gd_build():
     except Exception as e:
         print("GD folds failed", e)
 
-    # ── 5. giày: đường may giữa mũi + viền cổ giày ──
+    # ── 5. boots: center seam on the toe + boot collar trim ──
     try:
         for side in ("R", "L"):
             ft, bt = obj[f"goku_foot_{side}"], obj[f"goku_boot_{side}"]
@@ -229,12 +229,12 @@ def _gd_build():
     except Exception as e:
         print("GD boots failed", e)
 
-    # ── 6. vệt sáng sắc gần gốc các lọn tóc lớn (kiểu anime), nằm trên mặt sáng của lọn ──
-    # Đèn key gắn camera chiếu từ trên-trái khung hình → nhìn từ trước, mặt sáng là mặt -w (về phía -X, phải nhân vật).
-    # Chỉ lọn quay mặt về trước; mesh con của chính object tóc nên rung/phồng theo tóc.
+    # ── 6. sharp highlights near the roots of the big hair locks (anime style), on the lit side of each lock ──
+    # The key light attached to the camera shines from the top-left of the frame → seen from the front, the lit side is the -w side (toward -X, the character's right).
+    # Only locks facing forward; child meshes of the hair object itself so they shake/puff along with the hair.
     try:
         def lit_face(x):
-            """Mặt trên-trái của LOCK_SECTION: x∈[-1, 0] → y."""
+            """Top-left face of LOCK_SECTION: x∈[-1, 0] → y."""
             pts = [p for p in LOCK_SECTION[:3]]
             for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
                 if x0 <= x <= x1:
@@ -246,7 +246,7 @@ def _gd_build():
             n_ok = 0
             for frames in frames_list:
                 P0, w0, n0, _, _ = frames[0]
-                if n0.y > -0.25 or n0.z < -0.3:            # lọn quay ra sau / chúc xuống: bỏ
+                if n0.y > -0.25 or n0.z < -0.3:            # lock facing backward / pointing down: skip
                     continue
                 rings = len(frames)
                 i0, i1 = max(1, int(s0 * rings)), int(s1 * rings)
@@ -254,13 +254,13 @@ def _gd_build():
                 for i in range(i0, i1 + 1):
                     P, w, n, hw, ht = frames[i]
                     u = (i - i0) / (i1 - i0)
-                    k = math.sin(math.pi * u) ** 0.8 * (1.0 - 0.35 * u)   # thon nhọn 2 đầu, đầu gốc to hơn
+                    k = math.sin(math.pi * u) ** 0.8 * (1.0 - 0.35 * u)   # tapered at both ends, thicker at the root end
                     xs = (xc - half * k, xc + half * k * 0.6)
                     vs = []
                     for x in xs:
                         y = lit_face(x)
                         q = P + w * x * hw + n * y * ht
-                        # pháp tuyến mặt sáng: vuông góc với cạnh mép (-1,0) → gờ (0,1.15) trong mặt cắt
+                        # lit-face normal: perpendicular to the edge (-1,0) → ridge (0,1.15) in the cross-section
                         nf = (n * hw - w * 1.15 * ht).normalized()
                         vs.append(bm.verts.new(q + nf * 0.0022))
                     row.append(vs)

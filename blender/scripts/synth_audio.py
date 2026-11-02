@@ -1,18 +1,18 @@
-# Nhạc + tiếng động cho phim, tổng hợp bằng numpy (không dùng tài nguyên có bản quyền). v22: viết lại thành một
-# bản nhạc phim kiểu anime chiến đấu, khớp từng nhịp hình: dàn dây + kèn đồng + đồng ca + timpani/taiko + trống dàn,
-# vang (reverb) chung, nén/duck nhạc dưới tiếng động. Mọi mốc lấy từ timeline.json (marker, track, bản đồ retime).
+# Music + sound effects for the film, synthesized with numpy (no copyrighted assets). v22: rewritten as an
+# anime battle-style film score, synced to every visual beat: strings + brass + choir + timpani/taiko + drum kit,
+# shared hall reverb, music compressed/ducked under the SFX. Every cue comes from timeline.json (markers, tracks, retime map).
 #
-#   mở màn bão (Rê thứ, dây trầm + đồng ca "ooh" + sấm) → gồng (timpani cuộn, dây tremolo dâng, riser) →
-#   chớp SSJ (đánh nhịp + đảo cymbal) → BÙNG NỔ (hợp âm kèn Rê trưởng + đồng ca "aah") → chủ đề anh hùng (kèn) →
-#   Frieza (dây thấp nghịch, kèn trầm tritone) → chiến đấu 150 BPM (trống dàn, bass móc, power chord, dây 16 nốt) →
-#   lặng trước cú đấm → CÚ ĐẤM (stinger cả dàn, vang dài) → KAMEHAMEHA (v23: 4 nhịp "Ka–me–ha–me" dâng theo vòng
-#   Dm–Bb–C–A trên tiếng khí ù dâng cao, lặng, "HA!" Rê trưởng cả dàn + tia gầm, nổ lớn) → kết anh hùng (kèn chủ đề
-#   + hợp âm cuối + chuông title).
+#   storm opening (D minor, low strings + "ooh" choir + thunder) → power-up (timpani roll, rising string tremolo, riser) →
+#   SSJ flashes (hits + reversed cymbal) → EXPLOSION (D major brass chord + "aah" choir) → hero theme (brass) →
+#   Frieza (dissonant low strings, low brass tritone) → 150 BPM fight (drum kit, hooky bass, power chords, 16th-note strings) →
+#   silence before the punch → THE PUNCH (full-orchestra stinger, long reverb) → KAMEHAMEHA (v23: 4 beats "Ka–me–ha–me" rising
+#   through Dm–Bb–C–A over a rising Ki hum, silence, "HA!" full-orchestra D major + roaring beam, huge blast) → heroic ending
+#   (brass theme + final chord + title chime).
 #
-# Nhạc riêng: đặt render/audio/bgm.wav (tools/build.sh tự đổi mp3/m4a/flac → bgm.wav 48 kHz) thì dùng file đó làm
-# nhạc nền thay phần nhạc tổng hợp (tiếng động vẫn tổng hợp, nhạc tự hạ khi có tiếng động lớn).
+# Custom music: put render/audio/bgm.wav (tools/build.sh auto-converts mp3/m4a/flac → 48 kHz bgm.wav) and that file is
+# used as the background music instead of the synthesized score (SFX stay synthesized, music ducks under loud SFX).
 #
-# Chạy bằng Python của Blender (có sẵn numpy):
+# Run with Blender's Python (numpy included):
 #   Blender -b --factory-startup --python blender/scripts/synth_audio.py
 import json, os, wave
 import numpy as np
@@ -29,7 +29,7 @@ RT = TL.get("retime", [[0, 0], [1200, 1200]])
 
 
 def T(f_old):
-    """frame của phim 20 s gốc → giây trong phim đã giãn nhịp"""
+    """frame of the original 20 s film → seconds in the retimed film"""
     for (a, na), (b, nb) in zip(RT, RT[1:]):
         if f_old <= b or [b, nb] == RT[-1]:
             return (na + (f_old - a) * (nb - na) / (b - a)) / FPS
@@ -46,9 +46,9 @@ def track(name):
     return np.interp(t_all, np.arange(len(v)) / FPS, v)
 
 
-# ───────────────────────── DSP cơ bản ─────────────────────────
+# ───────────────────────── basic DSP ─────────────────────────
 def band(x, lo, hi):
-    """Lọc dải tần bằng FFT (mềm ở hai mép)."""
+    """FFT band-pass filter (soft at both edges)."""
     X = np.fft.rfft(x)
     f = np.fft.rfftfreq(len(x), 1 / SR)
     m = 1 / (1 + (lo / np.maximum(f, 1)) ** 4) / (1 + (f / hi) ** 4)
@@ -105,7 +105,7 @@ class Bus:
 
 
 def reverb(x, sec=2.4, damp=5000, seed=1):
-    """Vang hội trường: tích chập với nhiễu suy giảm theo hàm mũ (2 kênh khác nhau → rộng)."""
+    """Hall reverb: convolution with exponentially decaying noise (2 different channels → wide)."""
     r = np.random.default_rng(seed)
     n = int(sec * SR)
     t = np.arange(n) / SR
@@ -113,16 +113,16 @@ def reverb(x, sec=2.4, damp=5000, seed=1):
     for ch in range(2):
         ir = r.standard_normal(n) * np.exp(-t * 6.9 / sec)
         ir = band(ir, 120, damp)
-        ir[: int(0.012 * SR)] *= np.linspace(0, 1, int(0.012 * SR))      # pre-delay mềm
+        ir[: int(0.012 * SR)] *= np.linspace(0, 1, int(0.012 * SR))      # soft pre-delay
         ir /= np.sqrt((ir ** 2).sum())
         L = len(x) + n
         out[:, ch] = np.fft.irfft(np.fft.rfft(x[:, ch], L) * np.fft.rfft(ir, L), L)[: len(x)]
     return out
 
 
-# ───────────────────────── nhạc cụ ─────────────────────────
+# ───────────────────────── instruments ─────────────────────────
 def brass(midi, sec, vel=1.0):
-    """Kèn đồng: cộng hưởng hài với độ sáng tăng theo attack (nổ "pah"), rung giọng sau 0.25 s."""
+    """Brass: harmonic resonance with brightness rising on the attack ("pah" blare), vibrato after 0.25 s."""
     n = int(sec * SR)
     t = np.arange(n) / SR
     f0 = hz(midi) * (1 + 0.004 * np.sin(2 * np.pi * 5.2 * t) * np.clip((t - 0.25) / 0.3, 0, 1))
@@ -137,7 +137,7 @@ def brass(midi, sec, vel=1.0):
 
 
 def strings(midis, sec, att=0.25, rel=0.4, trem=0.0):
-    """Dàn dây: siêu răng cưa nhiều bè lệch cent, tấn công chậm, lọc mềm; trem>0 → tremolo (Hz)."""
+    """Strings: multi-voice detuned supersaw, slow attack, soft filter; trem>0 → tremolo (Hz)."""
     n = int(sec * SR)
     t = np.arange(n) / SR
     x = np.zeros(n)
@@ -153,7 +153,7 @@ def strings(midis, sec, att=0.25, rel=0.4, trem=0.0):
 
 
 def choir(midis, sec, vowel="aah", att=0.6, rel=0.8):
-    """Đồng ca: hài âm nhân phổ formant (aah / ooh), nhiều giọng lệch + rung giọng."""
+    """Choir: harmonics shaped by a formant spectrum (aah / ooh), several detuned voices + vibrato."""
     F = {"aah": ((730, 90), (1090, 110), (2440, 160)), "ooh": ((300, 60), (870, 90), (2240, 140))}[vowel]
     n = int(sec * SR)
     t = np.arange(n) / SR
@@ -244,7 +244,7 @@ def bass(midi, sec, vel=1.0):
 
 
 def power(midi, sec, vel=1.0):
-    """Power chord guitar méo (gốc + quãng 5 + quãng 8)."""
+    """Distorted guitar power chord (root + 5th + octave)."""
     n = int(sec * SR)
     t = np.arange(n) / SR
     x = sum(saw(2 * np.pi * hz(m) * (1 + d) * t) for m in (midi, midi + 7, midi + 12) for d in (-0.003, 0.003))
@@ -252,7 +252,7 @@ def power(midi, sec, vel=1.0):
     return x * adsr(n, 0.004, 0.06) * vel * 0.35
 
 
-# ───────────────────────── tiếng động ─────────────────────────
+# ───────────────────────── sound effects ─────────────────────────
 def whoosh(sec, lo, hi):
     x = noise(sec)
     out = np.zeros_like(x)
@@ -264,7 +264,7 @@ def whoosh(sec, lo, hi):
 
 
 def teleport():
-    """"Shun!" dịch chuyển kiểu anime: vút cao rất nhanh + rung kim loại ngắn."""
+    """"Shun!" anime teleport: very fast upward whoosh + short metallic ring."""
     a = band(sweep(900, 5200, 0.12, saw), 600, 9000) * env(int(0.12 * SR), 0.003, 0.1, 3)
     b = whoosh(0.22, 1500, 7000)
     out = np.zeros(int(0.3 * SR)); out[: len(a)] += a * 0.5; out[: len(b)] += b
@@ -290,7 +290,7 @@ def explosion(sec=2.5, vel=1.0):
 
 
 def beam_zap(sec=0.9):
-    """Death Beam: tiếng rít điện chói, rè, tắt nhanh."""
+    """Death Beam: piercing, buzzy electric screech, quick decay."""
     n = int(sec * SR)
     t = np.arange(n) / SR
     f = 1300 * (1 + 0.3 * np.exp(-t * 18))
@@ -301,42 +301,42 @@ def beam_zap(sec=0.9):
 
 
 def charge(sec=0.6, f0=300, f1=1800):
-    """Tụ khí: tiếng rít dâng + lách tách."""
+    """Ki charge: rising whine + crackle."""
     n = int(sec * SR)
     x = sweep(f0, f1, sec) * 0.6 + band(noise(sec), 2500, 9000) * (rng.random(n) < 0.03) * 3
     return x * np.linspace(0.1, 1, n) ** 2 * adsr(n, 0.02, 0.03)
 
 
-# ───────────────────────── mốc thời gian (giây, phim đã giãn) ─────────────────────────
+# ───────────────────────── time cues (seconds, retimed film) ─────────────────────────
 S_POWER, S_EYES, S_BOOM, S_SSJ = T(120), T(240), T(300), T(390)
 S_FRIEZA, S_DODGE, S_COMBO, S_CHASE = T(510), T(600), T(690), T(780)
 S_COUNTER, S_HIT, S_END = T(990), T(1030), T(1110)
 mk_t = lambda name, d=None: next((m["f"] / FPS for m in markers if m["name"] == name), d)
-K_S = mk_t("kame:start", S_END)                       # đoạn Kamehameha (không có: bản cũ, bỏ qua)
+K_S = mk_t("kame:start", S_END)                       # Kamehameha sequence (missing: old build, skip)
 K_C, K_F, K_H = mk_t("kame:charge"), mk_t("kame:fire"), mk_t("kame:hit")
 KAME = K_C is not None and K_F is not None and K_H is not None
 music, sfx = Bus(), Bus()
 
-# 1) Mở màn: Namek nổi giông — dây trầm Rê thứ + đồng ca "ooh" + timpani cuộn nhẹ
+# 1) Opening: storm brewing over Namek — low D minor strings + "ooh" choir + soft timpani roll
 music.put(strings([38, 45, 50], S_POWER + 0.6, att=1.6, rel=0.8), 0.0, 0.55)
 music.put(choir([50, 53, 57], S_POWER + 0.4, "ooh", att=1.8, rel=0.6), 0.6, 0.5)
 music.put(timp_roll(38, 2.2, 0.05, 0.5), S_POWER - 2.3, 0.6)
 music.put(taiko(1.2, 70, 1.0), 0.15, 0.8)
-# 2) Gồng Ki: dây tremolo dâng theo vòng Dm–Bb–C–A, timpani cuộn lớn dần, đồng ca dâng, riser
+# 2) Charging Ki: string tremolo rising through Dm–Bb–C–A, timpani roll growing, choir swelling, riser
 seg = (S_EYES - S_POWER) / 4
 for i, ch in enumerate(([50, 53, 57, 62], [46, 50, 53, 58], [48, 52, 55, 60], [45, 49, 52, 57])):
     music.put(strings(ch, seg + 0.3, att=0.15, rel=0.3, trem=12), S_POWER + i * seg, 0.45 + 0.12 * i)
     music.put(strings([ch[0] - 12], seg + 0.3, att=0.1, rel=0.3), S_POWER + i * seg, 0.5)
 music.put(choir([62, 65, 69], S_EYES - S_POWER + 0.3, "aah", att=2.5, rel=0.3), S_POWER, 0.45)
 music.put(timp_roll(38, S_EYES - S_POWER, 0.1, 0.9), S_POWER, 0.8)
-# 3) Đôi mắt: 3 nhịp chớp SSJ = đánh dàn + đảo cymbal; dây cao rung dâng; riser vào cú nổ; lặng 0.12 s trước nổ
+# 3) The eyes: 3 SSJ flash beats = orchestra hits + reversed cymbal; high strings trembling up; riser into the blast; 0.12 s silence before it
 for f in haptic("rigid", S_EYES - 0.1, S_BOOM):
     music.put(taiko(0.9, 80, 1.0) + timpani(38, 0.9, 0.8)[: int(0.9 * SR)], f, 0.9)
     music.put(power(38, 0.35, 1.0), f, 0.5)
 music.put(strings([74, 77, 81], S_BOOM - S_EYES, att=0.3, rel=0.05, trem=16), S_EYES, 0.5)
 music.put(riser(S_BOOM - S_EYES - 0.12), S_EYES, 0.5)
 music.put(rev_cymbal(min(1.4, S_BOOM - S_EYES - 0.12)), S_BOOM - 0.12 - min(1.4, S_BOOM - S_EYES - 0.12), 0.6)
-# 4) BÙNG NỔ: hợp âm kèn Rê trưởng fortissimo + đồng ca + timpani + crash, rồi chủ đề anh hùng (kèn) trên dây
+# 4) EXPLOSION: fortissimo D major brass chord + choir + timpani + crash, then the hero theme (brass) over strings
 music.put(crash(4.0, 1.0), S_BOOM, 0.9)
 music.put(timpani(38, 2.5, 1.0), S_BOOM, 1.0)
 for m in (50, 57, 62, 66, 69):
@@ -355,18 +355,18 @@ for i, ch in enumerate(([50, 57, 62, 66], [43, 55, 59, 62], [45, 57, 61, 64], [5
         music.put(strings(ch, min(2 * BEAT + 0.4, S_FRIEZA - st + 0.2), att=0.2, rel=0.35), st, 0.55)
         music.put(timpani(ch[0], 1.0, 0.6), st, 0.6)
 music.put(strings([50, 57, 62], t0 - S_BOOM, att=0.4, rel=0.4), S_BOOM + 0.3, 0.45)
-# 5) Frieza: dây trầm Si giáng thứ tremolo + kèn trầm quãng tritone (đe doạ) + pizzicato
+# 5) Frieza: low B-flat minor string tremolo + low brass tritone (menacing) + pizzicato
 music.put(strings([34, 41, 46, 49], S_DODGE - S_FRIEZA + 0.3, att=0.3, rel=0.3, trem=9), S_FRIEZA, 0.6)
 music.put(brass(34, S_DODGE - S_FRIEZA, 0.7) + brass(40, S_DODGE - S_FRIEZA, 0.6), S_FRIEZA + 0.2, 0.5)
 for k, m in enumerate((58, 61, 58, 64, 58, 61, 65, 64)):
     at = S_FRIEZA + 0.3 + k * 0.45
     if at < S_DODGE - 0.2:
         music.put(strings([m], 0.22, att=0.004, rel=0.18), at, 0.5, 0.3)
-# 6) Chiến đấu 150 BPM: Dm–Bb–C–A, trống dàn, bass móc 16 nốt, power chord, dây 16 nốt, kèn đánh nhấn
+# 6) 150 BPM fight: Dm–Bb–C–A, drum kit, hooky 16th-note bass, power chords, 16th-note strings, brass accents
 BPM = 150
 B = 60 / BPM
 prog = [50, 46, 48, 45]
-bassline = [0, 0, 12, 0, 0, 12, 0, 7, 0, 0, 12, 0, 7, 0, 12, 7]   # chỉ gốc / quãng 5 / quãng 8: hợp mọi hợp âm
+bassline = [0, 0, 12, 0, 0, 12, 0, 7, 0, 0, 12, 0, 7, 0, 12, 7]   # root / 5th / octave only: fits every chord
 t = S_DODGE
 bar = 0
 while t < S_COUNTER - 0.05:
@@ -384,9 +384,9 @@ while t < S_COUNTER - 0.05:
     music.put(power(root - 12, 1.5 * B, 1.0), t, 0.55, -0.4)
     music.put(power(root - 12, 1.0 * B, 0.9), t + 1.5 * B, 0.45, -0.4)
     music.put(power(root - 12, 1.5 * B, 1.0), t + 2.5 * B, 0.5, -0.4)
-    chord = [root + 12, root + 12 + (3 if root == 50 else 4), root + 19]   # Rê thứ, các hợp âm còn lại trưởng
+    chord = [root + 12, root + 12 + (3 if root == 50 else 4), root + 19]   # D minor, the other chords major
     music.put(strings(chord, 4 * B + 0.15, att=0.02, rel=0.1, trem=BPM / 60 * 4), t, 0.5, 0.35)
-    if bar % 2 == 1:                                            # đoạn fill tom cuối mỗi 2 nhịp
+    if bar % 2 == 1:                                            # tom fill at the end of every 2 bars
         for k in range(4):
             music.put(taiko(0.4, 140 - k * 18, 0.8), t + 3 * B + k * B / 4, 0.55, 0.3 - k * 0.2)
     t += 4 * B
@@ -395,19 +395,19 @@ for at in haptic("rigid", S_COMBO, S_CHASE) + haptic("medium"):
     for m in (62, 65, 69):
         music.put(brass(m, 0.45, 1.0), at, 0.4)
     music.put(crash(1.8, 0.7), at, 0.4)
-# 7) Phản đòn: rút trống, dây cao rung + riser, lặng hẳn 0.3 s trước cú đấm
+# 7) Counterattack: drums drop out, high trembling strings + riser, dead silence 0.3 s before the punch
 music.put(strings([74, 81, 86], S_HIT - S_COUNTER, att=0.2, rel=0.05, trem=18), S_COUNTER, 0.55)
 music.put(strings([38], S_HIT - S_COUNTER, att=0.3, rel=0.05), S_COUNTER, 0.6)
 music.put(riser(S_HIT - S_COUNTER - 0.3, 150, 4000), S_COUNTER, 0.6)
-# 8) CÚ ĐẤM: stinger cả dàn + crash + timpani, vang dài theo slow-mo
+# 8) THE PUNCH: full-orchestra stinger + crash + timpani, long reverb for the slow-mo
 music.put(crash(5.0, 1.0), S_HIT, 1.0)
 music.put(timpani(38, 3.0, 1.0), S_HIT, 1.0)
 for m in (38, 45, 50, 57, 62, 65):
     music.put(brass(m, 1.2, 1.0), S_HIT, 0.5)
 music.put(choir([62, 65, 69, 74], 2.0, "aah", att=0.05, rel=1.4), S_HIT, 0.6)
 music.put(strings([50, 57, 62, 65], K_S - S_HIT + 0.5, att=0.6, rel=0.8), S_HIT + 0.6, 0.35)
-# 8b) KAMEHAMEHA: nền Rê trầm + dây tremolo dâng + đồng ca phồng; 4 nhịp "Ka–me–ha–me" (taiko + kèn trầm + hợp âm
-#     dâng Dm → Bb → C → A), riser vào "HA!"; HA = Rê trưởng cả dàn + crash; tia: kèn giữ âm + dây cao; trúng: stinger 2
+# 8b) KAMEHAMEHA: low D drone + rising string tremolo + swelling choir; 4 beats "Ka–me–ha–me" (taiko + low brass + chords
+#     rising Dm → Bb → C → A), riser into "HA!"; HA = full-orchestra D major + crash; beam: sustained brass + high strings; hit: stinger 2
 if KAME:
     ch_len = K_F - K_C
     music.put(strings([38, 45], K_F - K_S, att=0.8, rel=0.1), K_S, 0.5)
@@ -434,9 +434,9 @@ if KAME:
     for m in (38, 45, 50, 57, 62, 64, 69):
         music.put(brass(m, 1.4, 1.0), K_H, 0.45)
     music.put(strings([50, 57, 62, 69], S_END - K_H + 0.6, att=0.4, rel=0.6), K_H + 0.5, 0.4)
-# 9) Kết: kèn chủ đề anh hùng nhắc lại (vào từ cuối đoạn vang cú đấm) → hợp âm Rê trưởng cuối giữ tới hết phim
+# 9) Ending: brass hero theme returns (enters at the tail of the punch reverb) → final D major chord held to the end of the film
 BEAT = 0.42
-t0 = S_END + 0.05 if KAME else S_END - 4 * BEAT + 0.3      # có Kamehameha: kèn vào đúng cut sang shot kết
+t0 = S_END + 0.05 if KAME else S_END - 4 * BEAT + 0.3      # with Kamehameha: brass enters right on the cut to the final shot
 fan = [(0, 1, 69), (1, 1, 74), (2, 1, 78), (3, 1.2, 76)]
 for b, d, m in fan:
     music.put(brass(m, d * BEAT + 0.12, 0.95), t0 + b * BEAT, 0.6)
@@ -453,15 +453,15 @@ music.put(choir([62, 66, 69, 74], hold, "aah", att=0.1, rel=1.0), fin, 0.7)
 music.put(strings([50, 57, 62, 66, 74], hold, att=0.1, rel=1.0), fin, 0.55)
 music.put(timpani(38, 2.0, 1.0), fin, 0.9)
 
-# ───────────────────────── tiếng động theo hình ─────────────────────────
-# gió + sấm (theo track lightning: mỗi lần chớp → sấm sau ~0.3 s)
+# ───────────────────────── SFX synced to picture ─────────────────────────
+# wind + thunder (from the lightning track: each flash → thunder ~0.3 s later)
 w = band(noise(S_POWER + 1.5), 200, 1800)
-# v27 gió theo đúng cơn giật làm cỏ dập dềnh (cùng công thức với shape key "storm" trong secondary.py, frame gốc)
+# v27 wind follows the same gusts that make the grass sway (same formula as the "storm" shape key in secondary.py, original frames)
 fo = np.interp(np.arange(len(w)) / SR * FPS, [b for a_, b in RT], [a_ for a_, b in RT])
 gust = 0.5 + 0.3 * np.sin(fo * 0.11) + 0.2 * np.sin(fo * 0.37 + 1.3)
 sfx.put(w * adsr(len(w), 1.0, 1.2) * (0.55 + 0.75 * gust), 0.0, 0.06)
-# v30 cỏ + lá xào xạc theo cơn giật (cùng gust với cỏ/cây/lá bay): lạo xạo cao tần, chỉ rõ khi giật mạnh; giông dịu sau
-# nổ biến hình (frame gốc 296) nên tiếng xào xạc nhỏ dần
+# v30 grass + leaves rustling with the gusts (same gust as grass/trees/flying leaves): high-frequency rustle, only clear on strong gusts; the storm calms after
+# the transformation blast (original frame 296), so the rustle fades
 storm_a = np.clip(1.0 - (fo - 240) / 300, 0.25, 1.0)
 rus = band(noise(len(w) / SR), 3000, 9000) * (0.4 + 0.6 * (rng.random(len(w)) < 0.08))
 sfx.put(rus * np.clip(gust - 0.45, 0, None) ** 1.5 * storm_a * adsr(len(w), 1.0, 1.2), 0.0, 0.05)
@@ -469,10 +469,10 @@ lt = track("lightning")
 on = np.flatnonzero((lt[1:] > 0.5) & (lt[:-1] <= 0.5)) / SR
 for at in on[:8]:
     th = band(noise(2.6), 25, 500) * env(int(2.6 * SR), 0.03, 2.0, 3)
-    th[: int(0.25 * SR)] += band(noise(0.25), 1500, 8000) * env(int(0.25 * SR), 0.001, 0.08, 5) * 0.5   # tiếng nứt đầu sấm
+    th[: int(0.25 * SR)] += band(noise(0.25), 1500, 8000) * env(int(0.25 * SR), 0.001, 0.08, 5) * 0.5   # crack at the start of the thunder
     sfx.put(th, at + 0.05, 0.5, rng.uniform(-0.6, 0.6))
-# v27 sấm theo từng tia sét app vẽ (cùng lịch: mỗi 0.32 s, seed theo cut, hash như timeline.ts): ~1/3 số tia có tiếng
-# rền xa vọng lại sau 0.4–1.1 s (sét ở xa), nhỏ hơn tiếng sấm chính
+# v27 thunder per lightning bolt drawn by the app (same schedule: every 0.32 s, seeded by cut, same hash as timeline.ts): ~1/3 of the bolts get
+# a distant rumble echoing 0.4–1.1 s later (far-off lightning), quieter than the main thunder
 CUT_F = [0] + [m["f"] for m in markers if m["name"] == "cut"]
 jhash = lambda x: (np.sin(x * 127.1 + 311.7) * 43758.5453) % 1.0
 n_b = 0
@@ -488,19 +488,19 @@ for i in range(int(DUR / 0.32)):
     sfx.put(rum, tt + d, 0.16 + 0.12 * jhash(seed * 2.2), rng.uniform(-0.7, 0.7))
     n_b += 1
 print("THUNDER bolts", n_b)
-# rung đất lúc gồng: rumble liên tục + đá lăn lách tách theo haptic light
+# ground rumble while charging Ki: continuous rumble + crackling rolling rocks on haptic light
 rb_len = S_BOOM - S_POWER
 rb = band(np.cumsum(noise(rb_len)) / 300, 20, 160) * np.linspace(0.2, 1.0, int(rb_len * SR)) ** 2
 sfx.put(rb, S_POWER, 0.9)
 for at in haptic("light", S_POWER, S_EYES)[::3]:
     sfx.put(band(noise(0.08), 1500, 6000) * env(int(0.08 * SR), 0.001, 0.05, 5), at, 0.2, rng.uniform(-0.7, 0.7))
-for at in haptic("rigid", S_EYES - 0.1, S_BOOM):                       # chớp SSJ: tia điện
+for at in haptic("rigid", S_EYES - 0.1, S_BOOM):                       # SSJ flashes: sparks
     z = band(noise(0.35), 2000, 10000) * (rng.random(int(0.35 * SR)) < 0.08) * env(int(0.35 * SR), 0.001, 0.25, 4) * 4
     sfx.put(z + sweep(500, 2400, 0.35) * env(int(0.35 * SR), 0.002, 0.3, 4) * 0.4, at, 0.5)
-# nổ biến hình
+# transformation blast
 sfx.put(explosion(4.0, 1.2), S_BOOM, 1.0)
 sfx.put(sweep(90, 26, 3.0) * env(int(3.0 * SR), 0.005, 2.6, 2.5), S_BOOM, 0.9)
-# aura: tiếng lửa khí cháy rừng rực + ù trầm theo track aura
+# aura: roaring Ki-fire sound + low hum from the aura track
 aura = track("aura")
 roar = band(noise(DUR), 150, 1400) * (0.65 + 0.35 * np.sin(2 * np.pi * 9 * t_all) * np.sin(2 * np.pi * 2.3 * t_all))
 hum = np.sin(2 * np.pi * 73.4 * t_all) + 0.5 * np.sin(2 * np.pi * 110 * t_all)
@@ -508,33 +508,33 @@ crk = band(rng.standard_normal(N), 2500, 9000) * (rng.random(N) < 0.012) * 3
 a_sig = (roar * 0.6 + hum * 0.35 + crk) * np.clip(aura, 0, 2)
 sfx.L += a_sig * 0.08
 sfx.R += a_sig * 0.08
-# Death Beam: tụ khí + rít chói (pan trái phải xen kẽ)
+# Death Beam: charge + piercing screech (panned alternately left/right)
 for i, at in enumerate(haptic("light", S_FRIEZA, S_COMBO)):
     sfx.put(charge(0.35, 600, 2400), at - 0.35, 0.25)
     sfx.put(beam_zap(0.8), at, 0.45, -0.45 if i % 2 else 0.45)
-# né: "shun" dịch chuyển
+# dodge: "shun" teleport
 for at in haptic("soft"):
     sfx.put(teleport(), at - 0.06, 0.55, rng.uniform(-0.3, 0.3))
-# combo: đấm + vút
+# combo: punches + whooshes
 for at in haptic("rigid", S_COMBO, S_CHASE):
     sfx.put(whoosh(0.25, 600, 4000), at - 0.22, 0.5)
     sfx.put(punch(1.0), at, 0.9)
-# bay rượt: gió lùa theo track speedlines
+# flying chase: wind rush from the speedlines track
 sp = track("speedlines")
 wind = band(noise(DUR), 250, 3000) * (0.7 + 0.3 * np.sin(2 * np.pi * 0.7 * t_all))
 sfx.L += wind * np.clip(sp, 0, 1) * 0.12
 sfx.R += np.roll(wind, 900) * np.clip(sp, 0, 1) * 0.12
-# ki blast + nổ
+# ki blasts + explosions
 for at in haptic("medium"):
     sfx.put(charge(0.3, 800, 3000), at - 0.32, 0.3)
     sfx.put(explosion(2.6, 1.0), at, 0.9, rng.uniform(-0.5, 0.5))
-# cú đấm cuối: vút dài + 3 cú dồn
+# final punch: long whoosh + 3 rapid hits
 sfx.put(whoosh(0.5, 300, 5000), S_HIT - 0.45, 0.6)
 for k, at in enumerate(haptic("heavy", S_HIT - 0.05, K_S)):
     sfx.put(punch(1.2 if k == 0 else 0.8, big=(k == 0)), at, 1.1 if k == 0 else 0.7)
 sfx.put(explosion(3.5, 0.9), S_HIT, 0.7)
-# Kamehameha: khí ù dâng (cao độ + độ dày tăng dần) + điện lách tách dày dần → "HA!" (bùm trầm + xé gió) →
-# tia gầm suốt lúc bắn → nổ cực lớn khi trúng
+# Kamehameha: rising Ki hum (pitch + density increase) + crackle getting denser → "HA!" (low boom + air tear) →
+# beam roars the whole time it fires → massive blast on impact
 if KAME:
     ln = K_F - K_C
     n = int(ln * SR)
@@ -555,8 +555,8 @@ if KAME:
     sfx.put((roar_k + whine) * adsr(nb, 0.03, 0.9), K_F + 0.02, 0.55)
     sfx.put(explosion(5.0, 1.3), K_H, 1.1)
     sfx.put(sweep(80, 22, 4.0) * env(int(4.0 * SR), 0.004, 3.4, 2.5), K_H, 1.0)
-    # v25 nước: bọt nước bắn lách tách + sóng vỗ trầm dưới chân lúc tụ khí (dày dần), xé nước lúc bắn,
-    # vụ nổ chạm mặt biển → ầm nước đổ + mưa giọt rơi lộp độp
+    # v25 water: water spray crackling + low waves lapping under the feet while gathering Ki (denser over time), water tearing on firing,
+    # the blast hits the sea surface → water crashing down + droplets pattering
     lw = K_F - K_S
     nw = int(lw * SR)
     tw = np.arange(nw) / SR
@@ -569,36 +569,36 @@ if KAME:
     nr = int(2.6 * SR)
     rain = band(noise(2.6), 2000, 8000) * (rng.random(nr) < 0.006) * 2.5 * env(nr, 0.3, 2.2, 2)
     sfx.put(rain, K_H + 0.6, 0.3)
-# v30 Death Beam trượt Goku trúng đất phía sau (marker sfx:pop): tiếng nổ đất nhỏ — bục trầm + rào rào đất rơi
+# v30 Death Beam misses Goku and hits the ground behind (marker sfx:pop): small ground blast — low thump + dirt raining down
 for at in (m["f"] / FPS for m in markers if m["name"] == "sfx:pop"):
     n = int(0.9 * SR)
     bang = band(noise(0.9), 60, 1800) * env(n, 0.002, 0.35, 3.5)
     grit = band(noise(0.9), 2500, 8000) * (rng.random(n) < 0.01) * 2.0 * env(n, 0.15, 0.7, 2)
     sfx.put(bang + grit * 0.5, at, 0.32 + 0.08 * rng.random(), rng.uniform(-0.4, 0.4))
-# v27 giọt nước lớn bị vụ nổ kame hất lên rơi lại xuống biển: tiếng tõm ngắn đúng frame chạm nước (marker sfx:plop)
+# v27 big droplets flung up by the kame blast fall back into the sea: short plop right on the water-hit frame (marker sfx:plop)
 for at in (m["f"] / FPS for m in markers if m["name"] == "sfx:plop"):
     n = int(0.18 * SR)
     tt = np.arange(n) / SR
     f0 = 380 + 260 * rng.random()
-    blip = np.sin(2 * np.pi * (f0 + 900 * tt) * tt) * env(n, 0.001, 0.07, 5)     # bọt khí ngân lên kiểu "bloop"
+    blip = np.sin(2 * np.pi * (f0 + 900 * tt) * tt) * env(n, 0.001, 0.07, 5)     # air bubble ringing up, "bloop" style
     sfx.put(band(noise(0.18), 900, 6000) * env(n, 0.001, 0.05, 6) * 0.6 + blip * 0.5, at, 0.12 + 0.1 * rng.random(),
             rng.uniform(-0.7, 0.7))
-# v26 đá vụn biến hình chạm đất: tiếng bịch trầm + lạo xạo nhỏ đúng frame mô phỏng (marker sfx:thud), mỗi hòn một âm sắc
+# v26 transformation debris hitting the ground: low thud + small crunch right on the simulated frame (marker sfx:thud), each rock its own timbre
 for i, at in enumerate(m["f"] / FPS for m in markers if m["name"] == "sfx:thud"):
     n = int(0.3 * SR)
     th = band(noise(0.3), 45 + 25 * rng.random(), 500) * env(n, 0.002, 0.16, 4)
     cr = band(noise(0.3), 1400, 5000) * env(n, 0.001, 0.04, 6) * 0.35
     sfx.put(th + cr, at, 0.45 + 0.3 * rng.random(), rng.uniform(-0.6, 0.6))
-# cột nước + chuông title
+# water column + title chime
 sfx.put(band(noise(1.8), 400, 9000) * env(int(1.8 * SR), 0.01, 1.4, 3), T(1150), 0.45, 0.3)
 title = next((m["f"] / FPS for m in markers if m["name"] == "haptic:success"), DUR - 1.2)
 for f, g in ((1174.7, 0.22), (1760.0, 0.16), (2349.3, 0.1), (2637.0, 0.07)):
     n = int(2.4 * SR)
     sfx.put(np.sin(2 * np.pi * f * np.arange(n) / SR) * env(n, 0.003, 2.2, 3), title, g, 0.2)
 
-# ───────────────────────── trộn ─────────────────────────
+# ───────────────────────── mix ─────────────────────────
 mus = music.stereo()
-if os.path.exists(BGM):                                         # nhạc người dùng thay phần nhạc tổng hợp
+if os.path.exists(BGM):                                         # user music replaces the synthesized score
     with wave.open(BGM) as w_:
         raw = np.frombuffer(w_.readframes(w_.getnframes()), "<i2").astype(float) / 32768
         ch = w_.getnchannels()
@@ -609,18 +609,18 @@ if os.path.exists(BGM):                                         # nhạc ngườ
 mus = mus * 0.82 + reverb(mus, 2.6, 6000, 1) * 0.35
 fx = sfx.stereo()
 fx = fx + reverb(fx, 1.6, 7000, 2) * 0.18
-# duck: nhạc hạ xuống khi tiếng động lớn (bao năng lượng tiếng động, mượt 120 ms)
+# duck: music dips under loud SFX (SFX energy envelope, smoothed over 120 ms)
 e = np.abs(fx).max(1)
 k = int(0.12 * SR)
 e = np.convolve(e, np.ones(k) / k, "same")
 duck = 1 - 0.55 * np.clip(e / (np.percentile(e, 99) + 1e-6), 0, 1)
-# nhạc chuẩn theo RMS (không theo đỉnh) → đoạn chiến đấu không lấn cú nổ / cú đấm; tiếng động giữ đỉnh lớn
+# music normalized by RMS (not peak) → the fight section doesn't overpower the blasts / punch; SFX keep big peaks
 mus_n = mus / (np.sqrt((mus ** 2).mean()) + 1e-9) * 0.05
-# tiếng động nén mềm: cú nổ biến hình không còn quá to so với cú đấm / tia / dịch chuyển (trước bị chuẩn theo nó)
+# SFX soft-compressed: the transformation blast is no longer way louder than the punch / beam / teleport (they were normalized to it before)
 fx_n = fx / (np.percentile(np.abs(fx), 99.97) + 1e-6)
 fx_n = np.tanh(fx_n * 0.9) * 0.75
 mix = mus_n * duck[:, None] + fx_n
-# lặng hẳn ngay trước cú đấm (nín thở) rồi bùng; Kamehameha cũng nín một nhịp ngắn trước "HA!"
+# dead silence right before the punch (holding breath) then the burst; Kamehameha also holds a short beat before "HA!"
 for hit_at, gap in ((S_HIT, 0.3),) + (((K_F, 0.16),) if KAME else ()):
     i0, i1 = int((hit_at - gap) * SR), int(hit_at * SR)
     mix[i0:i1] *= np.linspace(1, 0.06, i1 - i0)[:, None]

@@ -1,5 +1,5 @@
-# Dọn đá vụn bay lên sát camera (shot quay thấp vòng quanh Goku lúc gồng): hòn nào có lúc cách camera < 2.4 m trong
-# frame 100–390 thì dời ra xa camera bằng delta_location (giữ nguyên keyframe bay lên/văng ra), để không che Goku.
+# Clears debris flying up close to the camera (low shot circling Goku while he charges Ki): any rock that gets within 2.4 m of the camera in
+# frames 100–390 is pushed away from the camera via delta_location (flying-up/flung-out keyframes kept), so it doesn't cover Goku.
 import bpy
 from mathutils import Vector
 
@@ -15,7 +15,7 @@ for _d, _a, _r in debris:
         _v = _p - _c
         _fwd = _cam.matrix_world.to_quaternion() @ Vector((0, 0, -1))
         if _v.dot(_fwd) <= 0:
-            continue                       # sau lưng camera thì không thấy
+            continue                       # behind the camera: not visible
         if _worst is None or _v.length < _worst[0]:
             _worst = (_v.length, Vector((_v.x, _v.y, 0)))
     if _worst and _worst[0] < 2.4:
