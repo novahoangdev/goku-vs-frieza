@@ -1,10 +1,16 @@
-# sinh ra khi build / render (tools/build.sh dựng lại được)
-render/
+# build / render outputs (tools/build.sh regenerates them)
+render/*
+# except the final promo clip + previews used by the README (files under 100 MB)
+!render/promo/
+render/promo/*
+!render/promo/saiyan-awakening-demo.mp4
+!render/promo/saiyan-awakening-sheet.jpg
+!render/promo/preview-transformation.gif
 *.blend
 *.blend1
 app/assets/cinematic/cinematic.mp4
 
-# versions/: chỉ giữ ghi chú từng bản, bỏ video / ảnh / tiếng
+# versions/: keep only the notes of each version, not the videos / images / audio
 versions/*
 !versions/README.md
 !versions/v*/
@@ -17,6 +23,6 @@ app/ios/
 app/android/
 app/.expo/
 
-# rác của máy / patch
+# OS junk / patch leftovers
 .DS_Store
 *.orig

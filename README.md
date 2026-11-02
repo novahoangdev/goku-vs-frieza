@@ -1,61 +1,82 @@
 # Saiyan Awakening: Goku vs Frieza
 
-Cinematic 20 giây cho iPhone. Blender render phần 3D thành một video "pack" (màu + matte Goku + lớp năng lượng);
-app React Native vẽ aura, sét, beam, vụ nổ, speed lines... real-time bằng Skia v3 lên chính video đó, Reanimated giữ
-đồng hồ 120Hz và haptic. Thiết kế chi tiết: [PLAN.md](PLAN.md).
+A just-for-fun iPhone demo, made because I love Goku: hold to charge your Ki, then watch chibi Goku power up on Namek,
+go Super Saiyan, dodge Frieza's Death Beam and finish with a Kamehameha over the sea.
 
-## Cấu trúc
+![Super Saiyan transformation](render/promo/preview-transformation.gif)
+
+- **Promo clip:** [`render/promo/saiyan-awakening-demo.mp4`](render/promo/saiyan-awakening-demo.mp4) (41 s, 4:3, 60 fps, with sound),
+  frame grid: [`render/promo/saiyan-awakening-sheet.jpg`](render/promo/saiyan-awakening-sheet.jpg)
+- **Author:** Hoa Hoang ([@novahoangdev](https://x.com/novahoangdev)), from [@vgangstudio](https://x.com/vgangstudio) with love
+- **Built:** 29–31 October 2026, 31 iterated versions; release notes for each one are in [`versions/`](versions/README.md)
+
+A ~34-second cinematic for iPhone. Blender renders the 3D part into a single "pack" video (color + Goku matte + energy layer + depth);
+the React Native app draws aura, lightning, beams, explosions, speed lines and more in real time with Skia v3 on top of that same video, while Reanimated keeps
+a 120 Hz clock and drives haptics. Detailed design: [PLAN.md](PLAN.md).
+
+## Structure
 
 ```
-blender/scripts/build_scene.py    dựng toàn bộ cảnh bằng code: Namek, Goku/Frieza, vũ đạo, camera 10 shot, track FX, marker
-blender/scripts/face_textures.py  vẽ mặt anime (mắt, mi, miệng, má) bằng SDF + numpy → blender/textures/*.png
-blender/textures/                 texture mặt + bầu trời / mặt đất / biển vẽ tay (sinh bằng Codex image gen)
-blender/scripts/render_passes.py  render 3 pass: beauty / matte / energy
-blender/scripts/bake_timeline.py  xuất app/assets/cinematic/timeline.json (anchor 2D, track FX, marker)
-blender/scripts/synth_audio.py    tổng hợp nhạc + SFX bằng numpy theo marker → render/audio/mix.wav
-tools/pack.sh                     FFmpeg: 3 pass + tiếng → app/assets/cinematic/cinematic.mp4 (HEVC 10-bit 1728×2496)
-tools/build.sh                    chạy tất cả các bước trên
-tools/capture-version.sh          chốt một bản: build Release, quay, dựng clip → versions/<tên>/
-versions/                         mỗi bản nâng cấp một thư mục (clip demo, bản quay, ảnh) để so sánh
+blender/scripts/build_scene.py    builds the whole scene in code: Namek, Goku/Frieza, choreography, 10 camera shots, FX tracks, markers
+blender/scripts/face_textures.py  draws anime faces (eyes, lashes, mouth, cheeks) with SDF + numpy → blender/textures/*.png
+blender/textures/                 face textures + hand-painted sky / ground / sea (generated with Codex image gen)
+blender/scripts/render_passes.py  renders 4 passes: beauty / matte / energy / depth
+blender/scripts/bake_timeline.py  exports app/assets/cinematic/timeline.json (2D anchors, FX tracks, markers)
+blender/scripts/kamehameha.py     the Kamehameha sequence: cupped hands, energy ball, beam, sea ripples and spray, water-crown explosion
+blender/scripts/retime.py         stretches the 20 s block-out shot by shot into the ~34 s film (all keyframes, markers, node trees)
+blender/scripts/secondary.py      secondary motion after retime: hair / tail / belt springs, grass and tree wind, leaves, beam impacts
+blender/scripts/char_outlines.py  character outlines whose width follows camera distance and body part
+blender/scripts/extras/           per-area detail passes (Goku outfit and details, Frieza details and form, environment)
+blender/scripts/promo.py          builds the 4:3 phone-mockup promo clip for X
+blender/scripts/synth_audio.py    synthesizes music + SFX with numpy from the markers → render/audio/mix.wav
+tools/pack.sh                     FFmpeg: 4 passes + audio → app/assets/cinematic/cinematic.mp4 (HEVC 10-bit 2304×2496)
+tools/build.sh                    runs all of the steps above
+tools/promo.sh                    records the simulator and builds the promo clip → render/promo/saiyan-awakening-demo.mp4
+tools/compare.cjs                 side-by-side comparison reel of several versions → versions/compare.mp4
+tools/fx-preview.cjs              renders the composite shader on pack frames with CanvasKit (tweak FX without an iOS build)
+tools/capture-version.sh          locks in a version: Release build, screen recording, edited clip → versions/<name>/
+versions/                         one folder per upgrade with its notes (clips, recordings and stills stay local)
 app/                              Expo SDK 58 · react-native-skia 3.8 · react-native-webgpu 0.19 · Reanimated 4.7
 ```
 
-## Chạy
+## Running
 
 ```bash
-PREVIEW=1 tools/build.sh      # bản xem nhanh: 50%, ít sample (~vài phút)
-tools/build.sh                # bản final: 100%, 16 sample, motion blur
+PREVIEW=1 tools/build.sh      # quick preview: 50%, few samples (~a few minutes)
+tools/build.sh                # final: 100%, 16 samples, motion blur
 
 cd app
 npm install
-npx expo run:ios --device     # dev build lên iPhone thật (Skia v3 không chạy trên Expo Go)
+npx expo run:ios --device     # dev build on a real iPhone (Skia v3 does not run in Expo Go)
 ```
 
-Bản dev có thanh tua ở trên cùng (kéo để tua, hiện số frame và tên shot).
+The dev build has a scrub bar at the top (drag to seek; shows the frame number and shot name).
 
-## Chỉnh nhanh
+## Quick tweaks
 
-- Timing hiệu ứng: hàm `choreograph()` trong `build_scene.py`, phần "Track FX"; chạy lại `tools/build.sh` là app nhận timeline mới.
-- Hình dạng/màu aura, beam, vụ nổ: `app/src/cinematic/shaders/composite.ts`.
+- Effect timing: the `choreograph()` function in `build_scene.py`, "Track FX" section; rerun `tools/build.sh` and the app picks up the new timeline.
+- Aura, beam and explosion shapes/colors: `app/src/cinematic/shaders/composite.ts`.
 - Speed lines, flash, vignette, letterbox: `app/src/cinematic/shaders/overlay.ts`.
-- Nhân vật chibi dựng bằng code (`build_goku`, `build_frieza`); mặt là texture dán ôm theo đầu (`face_decal`).
-  Đổi nét mặt trong `face_textures.py` rồi chạy lại build. Muốn thay model tải về (vd Sketchfab) thì giữ tên các Empty
-  `GOKU_*_anchor`, `FRIEZA_*_anchor` để bake vẫn chạy.
-- Soi model nhanh: mở Blender GUI (addon MCP for Blender), chạy `build_scene.py` trong Blender với
-  `GVF_BLEND=<file tạm>` để không ghi đè `.blend` đang render.
-- Chi tiết thêm theo mảng nằm ở `blender/scripts/extras/*.py` (Goku, Frieza, cảnh), chạy sau cùng trong `build_scene.py`
-  với chung biến (G, F, M, helper). Thử riêng một file: `GVF_EXTRAS=<file.py> GVF_BLEND=<file tạm> blender -b -P build_scene.py`.
+- The chibi characters are built in code (`build_goku`, `build_frieza`); faces are textures wrapped onto the head (`face_decal`).
+  Change facial expressions in `face_textures.py`, then rerun the build. To swap in a downloaded model (e.g. from Sketchfab), keep the Empty names
+  `GOKU_*_anchor` and `FRIEZA_*_anchor` so the bake still works.
+- Quick model inspection: open the Blender GUI (MCP for Blender addon) and run `build_scene.py` inside Blender with
+  `GVF_BLEND=<temp file>` so it doesn't overwrite the `.blend` being rendered.
+- Extra per-area detail lives in `blender/scripts/extras/*.py` (Goku, Frieza, environment); these run last in `build_scene.py`
+  with the same variables (G, F, M, helpers). To try a single file: `GVF_EXTRAS=<file.py> GVF_BLEND=<temp file> blender -b -P build_scene.py`.
 
-## Quay clip demo (đăng X)
+## Recording the demo clip (for X)
 
 ```bash
-tools/build.sh                                   # video final
+tools/build.sh                                   # final video
 cd app && EXPO_PUBLIC_DEMO=1 npx expo run:ios --configuration Release --device <udid> --no-bundler && cd ..
 tools/promo.sh <udid>                            # → render/promo/saiyan-awakening-demo.mp4
-# hoặc gộp cả hai bước và lưu thành một bản để so sánh:
+# or combine both steps and save the result as a version for comparison:
 tools/capture-version.sh v3 <udid>               # → versions/v3/
 ```
 
-`EXPO_PUBLIC_DEMO=1` cho app tự gồng Ki rồi chạy phim, ẩn công cụ dev. `promo.sh` đặt status bar 9:41, quay
-simulator, tự dò điểm bắt đầu phim (khung loé sáng lúc biến hình), rồi `blender/scripts/promo.py` dựng clip 4:3:
-iPhone 3D khung titan phát bản quay, nền đổi màu theo từng đoạn, chữ lớn phía sau máy, zoom theo nhịp, end card.
+`EXPO_PUBLIC_DEMO=1` makes the app charge Ki on its own and then play the film, with dev tools hidden. `promo.sh` sets the status bar to 9:41, records
+the simulator, detects where the film starts (the bright flash at the transformation), then `blender/scripts/promo.py` builds a 4:3 clip:
+a 3D iPhone with a titanium frame playing the recording, a background whose color changes per section, large text behind the phone, zooms on the beat, and an end card.
+
+The rendered video `app/assets/cinematic/cinematic.mp4` (~100 MB) is not committed; run `tools/build.sh` once before building the app.
