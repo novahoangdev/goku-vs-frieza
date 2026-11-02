@@ -4,9 +4,9 @@ import { DURATION, FPS, HAPTICS } from "./timeline";
 import { fireHaptic } from "./haptics";
 
 /**
- * Đồng hồ 120Hz khoá pha theo video: mỗi frame UI cộng dt rồi kéo nhẹ về `videoTime`
- * (video chỉ báo thời gian 60 lần/giây). Lệch quá 2 frame (seek, giật) thì nhảy thẳng.
- * Bắn haptic khi vượt qua marker và báo hết phim.
+ * 120Hz clock phase-locked to the video: each UI frame adds dt, then nudges toward `videoTime`
+ * (the video only reports its time 60 times/s). Drift beyond 2 frames (seek, hitch) snaps straight to it.
+ * Fires haptics when passing markers and reports the end of the film.
  */
 export function useCinematicClock(
   videoTime: SharedValue<number>,

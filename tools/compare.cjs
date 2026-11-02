@@ -1,5 +1,5 @@
-// Ghép các bản quay simulator của mọi phiên bản (versions/v*/screen.mp4) đứng cạnh nhau, căn cùng lúc phim bắt đầu,
-// mỗi cột có nhãn tên bản → versions/compare.mp4 (tiếng lấy từ bản mới nhất).
+// Put the simulator recordings of every version (versions/v*/screen.mp4) side by side, aligned on the film start,
+// each column labeled with its version name → versions/compare.mp4 (audio from the newest version).
 //   node tools/compare.cjs [v1 v2 ...]
 const fs = require("fs");
 const path = require("path");
@@ -12,13 +12,13 @@ const FONT = "/System/Library/Fonts/Supplemental/DIN Alternate Bold.ttf";
 const names = process.argv.length > 2 ? process.argv.slice(2)
   : fs.readdirSync(VER).filter((d) => /^v\d+$/.test(d) && fs.existsSync(path.join(VER, d, "screen.mp4")))
       .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
-if (!names.length) throw new Error("chưa có versions/v*/screen.mp4");
-// ≤4 bản: một hàng 432×940 mỗi cột; nhiều hơn: lưới 2 hàng, ô nhỏ lại để khung tổng không quá ~1800 px
+if (!names.length) throw new Error("no versions/v*/screen.mp4 yet");
+// ≤4 versions: one row, 432×940 per column; more: a 2-row grid with smaller cells so the full frame stays under ~1800 px
 const ROWS = names.length > 4 ? 2 : 1;
 const COLS = Math.ceil(names.length / ROWS);
 const W = ROWS === 1 ? 432 : Math.min(432, Math.floor(1800 / COLS / 2) * 2), H = Math.round(W * 940 / 432 / 2) * 2;
 
-// timeline của từng bản: v22+ đã giãn nhịp (retime) → flash biến hình và độ dài phim khác các bản cũ
+// per-version timeline: v22+ is retimed → the transformation flash and film length differ from older versions
 const tlOf = (n) => { const p = path.join(VER, n, "timeline.json"); return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, "utf8")) : null; };
 const rtf = (tl, f) => {
   const R = (tl && tl.retime) || [[0, 0], [1200, 1200]];
@@ -27,7 +27,7 @@ const rtf = (tl, f) => {
 };
 const DUR = Math.max(...names.map((n) => { const tl = tlOf(n); return tl ? tl.frames / tl.fps : 20; })) + 2.5;
 
-// lúc phim bắt đầu trong bản quay: khung sáng nhất 18s đầu là flash biến hình (frame 303 của phim gốc → quy đổi)
+// film start in the recording: the brightest frame in the first 18s is the transformation flash (frame 303 of the original film → mapped)
 const filmStart = (mp4, flashF) => {
   const out = execFileSync("ffmpeg", ["-loglevel", "error", "-t", "18", "-i", mp4, "-vf",
     "signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-", "-f", "null", "-"], { maxBuffer: 1 << 26 }).toString();
@@ -59,7 +59,7 @@ require(path.join(APP, "node_modules/canvaskit-wasm/bin/full/canvaskit.js"))({
     const png = path.join(tmp, `${n}.png`);
     fs.writeFileSync(png, Buffer.from(surf.makeImageSnapshot().encodeToBytes()));
     const t0 = filmStart(path.join(VER, n, "screen.mp4"), rtf(tlOf(n), 303));
-    console.log(n, "phim bắt đầu ở", t0.toFixed(2), "s");
+    console.log(n, "film starts at", t0.toFixed(2), "s");
     inputs.push("-ss", String(Math.max(0, t0 - 1)), "-t", String(DUR), "-i", path.join(VER, n, "screen.mp4"), "-i", png);
     filters.push(`[${2 * i}:v]fps=60,scale=${W}:${H}:flags=lanczos[s${i}];[s${i}][${2 * i + 1}:v]overlay=0:${H - 110}[c${i}]`);
   });
@@ -67,7 +67,7 @@ require(path.join(APP, "node_modules/canvaskit-wasm/bin/full/canvaskit.js"))({
   const mix = path.join(VER, last, "mix.wav");
   const audio = fs.existsSync(mix) ? ["-i", mix] : [];
   const aIdx = names.length * 2;
-  // ô trống cuối lưới (số bản lẻ) tô đen
+  // fill the empty last grid cell (odd version count) with black
   const cells = names.map((_, i) => `[c${i}]`);
   if (cells.length < ROWS * COLS) {
     filters.push(`color=black:s=${W}x${H}:r=60:d=${DUR}[blank]`);

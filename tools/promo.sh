@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Quay app trên simulator rồi dựng clip demo 4:3 để đăng X.
-#   tools/promo.sh <udid>      (app bản Release, build với EXPO_PUBLIC_DEMO=1, đã cài trên simulator)
-# Ra: render/promo/saiyan-awakening-demo.mp4 (H.264 1920×1440 60fps + AAC) và screen.mp4 (bản quay màn hình gốc)
+# Record the app on the simulator, then build a 4:3 demo clip to post on X.
+#   tools/promo.sh <udid>      (Release app built with EXPO_PUBLIC_DEMO=1, already installed on the simulator)
+# Output: render/promo/saiyan-awakening-demo.mp4 (H.264 1920×1440 60fps + AAC) and screen.mp4 (the raw screen recording)
 set -eo pipefail
 cd "$(dirname "$0")/.."
 UDID=${1:?udid}
@@ -10,12 +10,12 @@ OUT=render/promo
 BLENDER=${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender}
 mkdir -p "$OUT"
 
-# 1. status bar sạch kiểu ảnh quảng cáo
+# 1. clean marketing-style status bar
 xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 \
   --cellularMode active --cellularBars 4 --wifiBars 3 --dataNetwork wifi
 
-# 2. quay: intro gồng Ki (~3s) + phim (~29s sau khi giãn nhịp) + title/nút xem lại
-#    PAUSE_PATTERN="render_passes.py": tạm dừng render nền trong lúc quay để simulator không bị giật
+# 2. record: Ki charge intro (~3s) + film (~29s after retiming) + title/replay button
+#    PAUSE_PATTERN="render_passes.py": pause the background render while recording so the simulator doesn't stutter
 PIDS=""
 if [[ -n "${PAUSE_PATTERN:-}" ]]; then PIDS=$(pgrep -f "$PAUSE_PATTERN" || true); fi
 resume() { [[ -n "$PIDS" ]] && kill -CONT $PIDS 2>/dev/null || true; }
@@ -32,22 +32,22 @@ sleep "$(python3 -c "print(round($FILM_DUR + 9))")"
 kill -INT "$REC"; wait "$REC" 2>/dev/null || true
 resume
 
-# 3. về 60fps đều (simulator ghi frame rate thay đổi)
+# 3. resample to constant 60fps (the simulator records a variable frame rate)
 ffmpeg -y -loglevel error -i "$OUT/raw.mov" -vf "fps=60,scale=1206:2622:flags=lanczos" -c:v libx264 -crf 14 -pix_fmt yuv420p -an "$OUT/screen.mp4"
 
-# 4. dò lúc phim bắt đầu: khung sáng nhất trong 18s đầu là flash biến hình (frame 303 của phim gốc → quy đổi)
+# 4. find the film start: the brightest frame in the first 18s is the transformation flash (frame 303 of the original film → mapped)
 PEAK=$(ffmpeg -loglevel error -t 18 -i "$OUT/screen.mp4" -vf "signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-" -f null - \
   | awk '/pts_time/{split($0,a,"pts_time:"); t=a[2]} /YAVG/{split($0,b,"="); if (b[2]>m){m=b[2]; best=t}} END{print best}')
 FLASH=$(python3 tools/rt.py frame 303)
 FILM0=$(python3 -c "print(round(max(0.0, $PEAK - $FLASH/60), 3))")
-echo "flash ở ${PEAK}s → phim bắt đầu ở ${FILM0}s trong bản quay"
+echo "flash at ${PEAK}s → film starts at ${FILM0}s in the recording"
 
-# 5. dựng clip 4:3 trong Blender
+# 5. build the 4:3 clip in Blender
 rm -rf "$OUT/frames"
 "$BLENDER" -b --factory-startup -P blender/scripts/promo.py -- --screen "$OUT/screen.mp4" --film-start "$FILM0" \
   --out "$OUT/frames" --label "${LABEL:-}" 2>&1 | grep -E "PROMO|Error|Traceback" || true
 
-# 6. ghép tiếng (phim bắt đầu ở giây 3 của clip) + riser nhẹ cho đoạn intro, xuất cho X
+# 6. add audio (the film starts at second 3 of the clip) + a soft riser for the intro, export for X
 ffmpeg -y -loglevel error -stats \
   -framerate 60 -i "$OUT/frames/%04d.png" \
   -i render/audio/mix.wav \
@@ -57,5 +57,5 @@ ffmpeg -y -loglevel error -stats \
   -c:v libx264 -profile:v high -preset slow -crf 17 -pix_fmt yuv420p -r 60 \
   -c:a aac -b:a 192k -ar 48000 -movflags +faststart \
   "$OUT/saiyan-awakening-demo.mp4"
-xcrun simctl status_bar "$UDID" clear || true   # sim có thể đã bị tắt tay sau khi quay xong
+xcrun simctl status_bar "$UDID" clear || true   # the sim may have been shut down by hand after recording
 ls -lh "$OUT/saiyan-awakening-demo.mp4"

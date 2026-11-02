@@ -4,10 +4,10 @@ import { EXPLOSIONS, FPS, HAPTICS, KAME, anchor, hash, lastCut, n1, rts, track }
 import { coverScale, plateToScreen, type Cam } from "./camera";
 
 /**
- * Frame các cú đấm trúng (hit spark): haptic rigid ở đoạn né/đỡ đòn (> 11s) và heavy ở cú phản đòn (> 16s);
- * các haptic dồn dập cách nhau < 0.2s gộp làm một để spark không bị reset liên tục.
+ * Frames where punches land (hit spark): rigid haptics in the dodge/block exchange (> 11s) and heavy on the counter (> 16s);
+ * bursts of haptics < 0.2s apart merge into one so the spark doesn't keep resetting.
  */
-// các mốc (giây) theo phim 20 s gốc, quy đổi sang phim đã giãn nhịp
+// times (seconds) in the original 20 s film, mapped to the retimed film
 const T11 = rts(11), T13 = rts(13), T16 = rts(16), T165 = rts(16.5), T18 = rts(18);
 const HITS: number[] = [];
 const inKame = (f: number) => {
@@ -15,17 +15,17 @@ const inKame = (f: number) => {
   return KAME !== null && f >= KAME.f0 && f < KAME.f1;
 };
 for (const h of HAPTICS) {
-  if (inKame(h.t * FPS)) continue; // haptic của Kamehameha là lúc bắn / nổ, không phải cú đấm
+  if (inKame(h.t * FPS)) continue; // Kamehameha haptics mark the firing / explosion, not punches
   if ((h.style === "rigid" && h.t > T11) || (h.style === "heavy" && h.t > T16)) {
     const f = Math.round(h.t * FPS);
     if (!HITS.length || f - HITS[HITS.length - 1] > 0.2 * FPS) HITS.push(f);
   }
 }
-const HIT_LIFE = 0.4; // giây
-const BOLT_EVERY = 0.32; // giây: mỗi ~0.3 s có thể loé một tia sét mới (xác suất theo track lightning)
+const HIT_LIFE = 0.4; // seconds
+const BOLT_EVERY = 0.32; // seconds: a new bolt may flash every ~0.3 s (probability from the lightning track)
 const BOLT_LIFE = 0.13;
 
-/** Tính mọi uniform cho lớp composite + overlay từ đồng hồ `t` và frame video đang hiển thị. */
+/** Computes every uniform for the composite + overlay layers from clock `t` and the video frame on screen. */
 export function useFxUniforms(t: SharedValue<number>, videoTime: SharedValue<number>, size: SkSize) {
   const cam = useDerivedValue<Cam>(() => {
     const ft = track("fxclock", t.value);
@@ -40,11 +40,11 @@ export function useFxUniforms(t: SharedValue<number>, videoTime: SharedValue<num
 
   const composite = useDerivedValue(() => {
     const tt = t.value;
-    const vf = videoTime.value * FPS; // anchor bám frame video đang hiển thị
+    const vf = videoTime.value * FPS; // anchors follow the video frame on screen
     const ft = track("fxclock", tt);
     const chest = anchor("goku_chest", vf);
     const head = anchor("goku_head", vf);
-    // độ lớn của Goku trên plate: khoảng cách đầu–ngực, 130px ≈ cảnh trung
+    // Goku's size on the plate: head–chest distance, 130px ≈ medium shot
     const fist = anchor("goku_fist_r", vf);
     const finger = anchor("frieza_finger", vf);
     const target = anchor("beam_target", vf);
@@ -60,7 +60,7 @@ export function useFxUniforms(t: SharedValue<number>, videoTime: SharedValue<num
     for (let i = 0; i < HITS.length; i++) {
       const age = (vf - HITS[i]) / (HIT_LIFE * FPS);
       if (age >= 0 && age < 1) {
-        // giữ nguyên điểm trúng ở frame chạm (nắm đấm rút về thì spark vẫn ở chỗ cũ); cỡ theo Goku lúc đó
+        // keep the impact point from the contact frame (the spark stays put as the fist pulls back); sized to Goku at that moment
         const hf = anchor("goku_fist_r", HITS[i]);
         const hc = anchor("goku_chest", HITS[i]);
         const hh = anchor("goku_head", HITS[i]);
@@ -69,7 +69,7 @@ export function useFxUniforms(t: SharedValue<number>, videoTime: SharedValue<num
       }
     }
     const beamOk = finger[2] > 0 && target[2] > 0;
-    // lửa aura toé ngược hướng bay khi Goku lướt nhanh trên màn hình (goku_trail: chỗ Goku ở 0.25 s trước)
+    // aura flames spray backwards when Goku moves fast across the screen (goku_trail: where Goku was 0.25 s earlier)
     const trail = anchor("goku_trail", vf);
     let ax = 0;
     let ay = -1;
@@ -87,7 +87,7 @@ export function useFxUniforms(t: SharedValue<number>, videoTime: SharedValue<num
       }
     }
     const ascale = Math.min(3, Math.max(0.12, Math.hypot(head[0] - chest[0], head[1] - chest[1]) / 130));
-    // sét trời: nhấp nháy 2 nhịp trong 0.13 s, seed đổi theo tia + theo cut
+    // sky lightning: flickers twice within 0.13 s; the seed changes per bolt + per cut
     const boltAge = (tt % BOLT_EVERY) / BOLT_LIFE;
     const boltSeed = Math.floor(tt / BOLT_EVERY) + lastCut(tt * FPS) * 0.37;
     const boltOn = boltAge > 1 || hash(boltSeed * 3.1) > track("lightning", tt)

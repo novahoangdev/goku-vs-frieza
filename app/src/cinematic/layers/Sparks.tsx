@@ -13,16 +13,16 @@ import {
 import { useDerivedValue, type SharedValue } from "react-native-reanimated";
 import { FPS, anchor, hash, lastCut, rts, track } from "../timeline";
 
-const D0 = rts(2), D1 = rts(5); // bụi bay lúc gồng (mốc theo phim 20 s gốc)
+const D0 = rts(2), D1 = rts(5); // dust drifting during the charge-up (times in the original 20 s film)
 import { coverScale, plateToScreen, type Cam } from "../camera";
 
 const COUNT = 220;
 const TEX = 32;
-const PERIOD = 1.3; // giây một vòng đời hạt
+const PERIOD = 1.3; // seconds per particle lifetime
 
 /**
- * Tia lửa vàng bay lên quanh Goku (theo aura) + bụi lơ lửng lúc gồng.
- * Hạt "stateless": vị trí tính thẳng từ seed và fxclock, đổi seed sau mỗi cut.
+ * Golden sparks rising around Goku (following the aura) + floating dust during the charge-up.
+ * "Stateless" particles: positions come straight from seed and fxclock; the seed changes after each cut.
  */
 export function Sparks({
   t,
@@ -54,7 +54,7 @@ export function Sparks({
     const [sx, sy] = plateToScreen(chest[0], chest[1], cam.value, size.width, size.height, pxScale);
     const aura = chest[2] > 0 ? track("aura", tt) : 0;
     const dust = tt > D0 && tt < D1 ? 1 : 0;
-    // độ lớn của Goku trên màn hình: khoảng cách đầu–ngực (130px plate ≈ cảnh trung)
+    // Goku's on-screen size: head–chest distance (130 plate px ≈ medium shot)
     const head = anchor("goku_head", vf);
     const scale = chest[2] > 0 ? Math.min(3, Math.hypot(head[0] - chest[0], head[1] - chest[1]) / 130 / pxScale * 2.7) : 0;
     return { sx, sy, aura, dust, scale, clock: track("fxclock", tt), seed: lastCut(vf) * 0.013 };
@@ -69,7 +69,7 @@ export function Sparks({
     const isDust = i % 3 === 0;
     const k = isDust ? s.dust : s.aura;
     const spread = (isDust ? 260 : 95) * s.scale;
-    // hạt khí bốc dọc hai mép người (như lửa aura), không rải đều lên mặt/thân: |lệch ngang| ≥ 35% bề rộng vùng hạt
+    // ki particles rise along both sides of the body (like aura flames), not over the face/torso: |lateral offset| ≥ 35% of the particle zone width
     const side = r2 < 0.5 ? -1 : 1;
     const off = isDust ? (r2 - 0.5) * spread : side * (0.35 + 0.65 * Math.abs(r2 - 0.5) * 2) * spread * 0.5;
     const x = s.sx + off * (1 + phase * 0.6);

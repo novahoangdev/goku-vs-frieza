@@ -6,7 +6,7 @@ import { track } from "../timeline";
 const TITLE = "SUPER SAIYAN";
 const SUB = "THE LEGENDARY WARRIOR";
 
-/** Title vàng kim cuối phim: bật lên bằng spring, vệt sáng quét ngang chữ. */
+/** Gold end-of-film title: pops in with a spring while a light sweep crosses the text. */
 export function TitleCard({ t, size }: { t: SharedValue<number>; size: SkSize }) {
   const big = useMemo(() => matchFont({ fontFamily: "Avenir Next", fontSize: 58, fontWeight: "900", fontStyle: "italic" }), []);
   const small = useMemo(() => matchFont({ fontFamily: "Avenir Next", fontSize: 17, fontWeight: "800" }), []);
@@ -14,13 +14,13 @@ export function TitleCard({ t, size }: { t: SharedValue<number>; size: SkSize })
   const w2 = small.measureText(SUB).width;
   const cx = size.width / 2;
   const cy = size.height * 0.8;
-  // chữ 58pt rộng hơn màn hình 402pt: thu lại cho vừa, chừa lề 20pt mỗi bên (kể cả lúc nảy vọt 10%)
+  // 58pt text is wider than the 402pt screen: scale it to fit with a 20pt margin each side (even at the 10% overshoot)
   const fit = Math.min(1, (size.width - 40) / ((w1 + 8) * 1.1));
 
   const k = useDerivedValue(() => track("title", t.value));
   const transform = useDerivedValue(() => {
     const x = k.value;
-    // nảy kiểu spring: vọt quá 1 khoảng 10% rồi về đúng 1
+    // spring bounce: overshoots 1 by 10%, then settles at 1
     const s = (0.6 + 0.4 * x + 0.3 * Math.sin(x * Math.PI) * x) * fit;
     return [{ translateX: cx }, { translateY: cy }, { scale: s }, { skewX: -0.08 }];
   });
@@ -34,7 +34,7 @@ export function TitleCard({ t, size }: { t: SharedValue<number>; size: SkSize })
 
   return (
     <Group transform={transform} opacity={opacity}>
-      {/* bóng đổ đỏ cam phía sau kiểu logo anime */}
+      {/* red-orange drop shadow behind, anime-logo style */}
       <Text x={-w1 / 2 + 4} y={6} text={TITLE} font={big} color="#7A1F0B" />
       <Text x={-w1 / 2} y={0} text={TITLE} font={big}>
         <LinearGradient start={vec(0, -44)} end={vec(0, 6)} colors={["#FFF6C8", "#FFD23F", "#FF9F1C"]} />

@@ -3,10 +3,10 @@ import { BlurMask, Group, Path, usePathValue, type SkSize } from "react-native-s
 import { useDerivedValue, type SharedValue } from "react-native-reanimated";
 import { FPS, hash, lastCut, track } from "../timeline";
 
-const BOLT_EVERY = 0.32; // giây
+const BOLT_EVERY = 0.32; // seconds
 const BOLT_LIFE = 0.13;
 
-/** Sét tím trên trời: mỗi ~0.3s một tia mới (seed đổi theo cut), sống 0.13s, nhấp nháy 2 nhịp. */
+/** Purple sky lightning: a new bolt every ~0.3s (seed changes per cut), lives 0.13s, flickers twice. */
 export function Lightning({ t, size }: { t: SharedValue<number>; size: SkSize }) {
   const strength = useDerivedValue(() => {
     const tt = t.value;
@@ -23,7 +23,7 @@ export function Lightning({ t, size }: { t: SharedValue<number>; size: SkSize })
     const seed = Math.floor(tt / BOLT_EVERY) + lastCut(tt * FPS) * 0.37;
     const w = size.width;
     const h = size.height;
-    // 2 tia, đi từ mép trên xuống ~40% màn hình, đường gấp khúc kiểu midpoint displacement
+    // 2 bolts from the top edge down to ~40% of the screen, jagged paths via midpoint displacement
     for (let k = 0; k < 2; k++) {
       let x = w * (0.1 + 0.8 * hash(seed + k * 17.3));
       let y = -10;
@@ -35,7 +35,7 @@ export function Lightning({ t, size }: { t: SharedValue<number>; size: SkSize })
         y = (endY * i) / steps;
         b.lineTo(x, y);
         if (i === 5 && hash(seed + k + 9.9) > 0.4) {
-          // nhánh phụ
+          // side branch
           const bx = x + (hash(seed + 2.2 + k) - 0.5) * w * 0.3;
           b.lineTo(bx, y + h * 0.06);
           b.moveTo(x, y);

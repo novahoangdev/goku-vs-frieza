@@ -5,7 +5,7 @@ import { useAnimatedReaction, type SharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { DURATION, FPS, SHOTS } from "../cinematic/timeline";
 
-/** Chỉ có ở bản dev: kéo để tua, hiện số frame và tên shot. */
+/** Dev builds only: drag to scrub; shows the frame number and shot name. */
 export function Scrubber({ t, onSeek }: { t: SharedValue<number>; onSeek: (sec: number) => void }) {
   const [width, setWidth] = useState(1);
   const [label, setLabel] = useState("f0000");

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Quy đổi mốc thời gian theo phim 20 s gốc sang phim đã giãn nhịp (bản đồ "retime" trong timeline.json).
-  python3 tools/rt.py frame 303 1150 [--tl path]   → frame mới (làm tròn)
-  python3 tools/rt.py sec 5.05                      → giây mới
-  python3 tools/rt.py dur                           → độ dài phim (giây)
-  python3 tools/rt.py marker kame:fire 8 [...]      → frame mới của marker + độ lệch (đoạn chèn không có trong phim gốc)"""
+"""Map times in the original 20 s film to the retimed film (the "retime" map in timeline.json).
+  python3 tools/rt.py frame 303 1150 [--tl path]   → new frames (rounded)
+  python3 tools/rt.py sec 5.05                      → new seconds
+  python3 tools/rt.py dur                           → film length (seconds)
+  python3 tools/rt.py marker kame:fire 8 [...]      → new marker frame + offset (inserted segments missing from the original film)"""
 import json, sys
 
 args = sys.argv[1:]

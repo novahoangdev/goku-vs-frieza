@@ -8,7 +8,7 @@ const IMPACT: Record<string, Haptics.ImpactFeedbackStyle> = {
   soft: Haptics.ImpactFeedbackStyle.Soft,
 };
 
-/** Gọi từ worklet qua scheduleOnRN khi đồng hồ vượt qua marker `haptic:<style>`. */
+/** Called from a worklet via scheduleOnRN when the clock passes a `haptic:<style>` marker. */
 export const fireHaptic = (style: string) => {
   const p =
     style === "success"

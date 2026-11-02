@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Gộp 4 chuỗi PNG (beauty / matte / energy / depth) + tiếng thành 1 video pack 2304×2496 cho app:
-#   beauty 1152×2496 | matte 576×1248 trên energy 576×1248 | depth 576×1248 (nửa dưới cột cuối để đen)
-#   PREVIEW=1 tools/pack.sh   → encoder phần cứng của Mac (nhanh), bỏ qua chất lượng
+# Merge the 4 PNG sequences (beauty / matte / energy / depth) + audio into one 2304×2496 pack video for the app:
+#   beauty 1152×2496 | matte 576×1248 over energy 576×1248 | depth 576×1248 (bottom half of the last column left black)
+#   PREVIEW=1 tools/pack.sh   → the Mac's hardware encoder (fast), quality not a priority
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=app/assets/cinematic/cinematic.mp4

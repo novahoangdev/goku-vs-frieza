@@ -4,8 +4,8 @@ import { Skia, type SkImage } from "react-native-skia";
 import { createVideoPlayer, importDevice, type VideoPlayer } from "react-native-webgpu";
 
 /**
- * Decode video bằng phần cứng → texture trên GPU device của Skia → SkImage, không đi qua CPU.
- * `frame` là ảnh bọc texture (giữ nguyên giữa các frame); `videoTime` là thời gian của frame vừa chép vào texture.
+ * Hardware video decode → texture on Skia's GPU device → SkImage, never touching the CPU.
+ * `frame` is an image wrapping the texture (stable across frames); `videoTime` is the time of the frame last copied into it.
  */
 export function useCinematicVideo(uri: string | null) {
   const frame = useSharedValue<SkImage | null>(null);
@@ -17,10 +17,10 @@ export function useCinematicVideo(uri: string | null) {
     if (!uri) return;
     const device = importDevice(Skia.getNativeDevice());
     const p = createVideoPlayer(uri);
-    p.loop = false; // mặc định là true
-    // bản quay demo tắt tiếng: clip promo lấy tiếng thẳng từ mix.wav, tiếng phát trong simulator chỉ gây ồn
+    p.loop = false; // defaults to true
+    // muted in demo recordings: the promo clip takes audio straight from mix.wav; simulator playback only adds noise
     p.volume = process.env.EXPO_PUBLIC_DEMO === "1" ? 0 : 1;
-    p.currentTime = 0; // đang pause vẫn trả về frame đầu cho màn intro
+    p.currentTime = 0; // still returns the first frame for the intro screen while paused
     player.current = p;
 
     let texture: GPUTexture | null = null;
@@ -39,18 +39,18 @@ export function useCinematicVideo(uri: string | null) {
             format: navigator.gpu.getPreferredCanvasFormat(),
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
           });
-          // SkImage bọc thẳng texture (đọc nội dung lúc vẽ) nên chỉ tạo một lần cho mỗi texture.
-          // Tạo ảnh mới mỗi frame rồi gán qua shared value từ JS thì UI runtime giữ hàng nghìn ảnh cũ
-          // chờ GC bên JS và Hermes hết bộ nhớ giữa phim (phim 29 s crash ở giây ~20).
+          // The SkImage wraps the texture directly (contents are read at draw time), so create it once per texture.
+          // Creating a new image every frame and assigning it via a shared value from JS leaves the UI runtime holding thousands
+          // of old images awaiting JS GC, and Hermes runs out of memory mid-film (the 29 s film crashed at ~20 s).
           frame.value = Skia.Image.MakeFromGPUTexture(texture);
         }
-        // YUV → RGB làm trên GPU; video encode đứng sẵn nên không cần đảo rộng/cao
+        // YUV → RGB on the GPU; the video is encoded in portrait, so no width/height swap is needed
         device.queue.copyExternalImageToTexture({ source: f, rotation: p.rotation }, { texture }, [
           f.width,
           f.height,
         ]);
-        f.release(); // trả buffer cho decoder ngay
-        videoTime.value = p.currentTime; // đổi uniform → Canvas vẽ lại với nội dung texture mới
+        f.release(); // hand the buffer back to the decoder right away
+        videoTime.value = p.currentTime; // uniform change → Canvas redraws with the new texture contents
         if (first) {
           first = false;
           setReady(true);
@@ -71,7 +71,7 @@ export function useCinematicVideo(uri: string | null) {
     };
   }, [uri, frame, videoTime]);
 
-  /** Chạy từ đầu (hoặc từ `at` giây). */
+  /** Plays from the start (or from `at` seconds). */
   const play = (at = 0) => {
     const p = player.current;
     if (!p) return;

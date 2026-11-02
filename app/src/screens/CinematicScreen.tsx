@@ -16,7 +16,7 @@ import { Scrubber } from "../dev/Scrubber";
 
 type Phase = "intro" | "playing" | "ended";
 
-/** EXPO_PUBLIC_DEMO=1: bản quay clip demo, tự gồng Ki, ẩn công cụ dev. */
+/** EXPO_PUBLIC_DEMO=1: demo clip recording build; charges Ki automatically, hides dev tools. */
 const DEMO = process.env.EXPO_PUBLIC_DEMO === "1";
 
 export function CinematicScreen() {
@@ -27,11 +27,11 @@ export function CinematicScreen() {
   const [phase, setPhase] = useState<Phase>("intro");
   const playing = useSharedValue(false);
   const charge = useSharedValue(0);
-  // poster (khung anh hùng cuối phim) che màn hình từ lúc mở app tới khi phim chạy (video chưa giải mã xong thì
-  // Canvas còn đen), tối dần theo `charge` giống lớp dim, rồi mờ đi khi phim bắt đầu
+  // the poster (the film's final hero frame) covers the screen from launch until the film plays (until the video decodes,
+  // the Canvas is black), darkens with `charge` like the dim layer, then fades out when the film starts
   const posterA = useSharedValue(1);
   const posterStyle = useAnimatedStyle(() => {
-    const a = charge.value * charge.value * 7;          // rung theo lực gồng, giống Canvas
+    const a = charge.value * charge.value * 7;          // shakes with the charge strength, like the Canvas
     return {
       opacity: posterA.value,
       transform: [{ translateX: a * n1(Date.now() / 30) }, { translateY: a * n1(Date.now() / 30 + 9) }, { scale: 1.04 }],
@@ -53,7 +53,7 @@ export function CinematicScreen() {
     start();
   };
 
-  // Chỉ bản dev: EXPO_PUBLIC_AUTOPLAY=1 bỏ qua màn gồng Ki, EXPO_PUBLIC_START_AT=<giây> chạy từ giữa phim
+  // Dev builds only: EXPO_PUBLIC_AUTOPLAY=1 skips the Ki charge screen, EXPO_PUBLIC_START_AT=<seconds> starts mid-film
   useEffect(() => {
     if (!__DEV__ || !ready || process.env.EXPO_PUBLIC_AUTOPLAY !== "1") return;
     const id = requestAnimationFrame(() => start(Number(process.env.EXPO_PUBLIC_START_AT ?? 0)));
@@ -61,7 +61,7 @@ export function CinematicScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  // Lúc gồng Ki: màn hình rung và tối dần theo `charge`
+  // While charging Ki: the screen shakes and darkens with `charge`
   const introShake = useDerivedValue(() => {
     const c = playing.get() ? 0 : charge.get();
     const a = c * c * 7;

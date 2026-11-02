@@ -1,6 +1,6 @@
-// Xem trước shader composite ngoài app: lấy khung video pack ở giây t, tính uniform giống useFxUniforms,
-// vẽ bằng CanvasKit và lưu PNG. Dùng để chỉnh aura / beam / vụ nổ mà không cần build lại iOS.
-//   node tools/fx-preview.cjs <out.png> <giây> [<giây> ...]
+// Preview the composite shader outside the app: grab the pack video frame at second t, compute uniforms like useFxUniforms,
+// draw with CanvasKit and save a PNG. Used to tune aura / beam / explosions without rebuilding iOS.
+//   node tools/fx-preview.cjs <out.png> <sec> [<sec> ...]
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
@@ -9,7 +9,7 @@ const ROOT = path.join(__dirname, "..");
 const APP = path.join(ROOT, "app");
 const TL = JSON.parse(fs.readFileSync(process.env.FX_TL || path.join(APP, "assets/cinematic/timeline.json"), "utf8"));
 const VIDEO = process.env.FX_VIDEO || path.join(APP, "assets/cinematic/cinematic.mp4");
-// cú đấm trúng (tia lửa va chạm): marker rung "rigid" sau 11 s và "heavy" sau 16 s, gộp các marker cách nhau < 0.2 s
+// punches landing (impact sparks): "rigid" haptic markers after 11 s and "heavy" after 16 s, merging markers < 0.2 s apart
 const RT = TL.retime || [[0, 0], [1200, 1200]];
 const rts = (sec) => { const f = sec * TL.fps; for (let i = 1; i < RT.length; i++) if (f <= RT[i][0] || i === RT.length - 1) return (RT[i - 1][1] + (f - RT[i - 1][0]) * (RT[i][1] - RT[i - 1][1]) / (RT[i][0] - RT[i - 1][0])) / TL.fps; return sec; };
 const HITS = [];
@@ -29,7 +29,7 @@ const hitU = (vf) => {
   }
   return hu;
 };
-// hướng lửa aura (giống useFxUniforms): bay nhanh trên màn hình thì toé ngược hướng bay
+// aura flame direction (like useFxUniforms): fast on-screen motion sprays it opposite the flight direction
 const adir = (vf, chest) => {
   if (!TL.anchors.goku_trail) return [0, -1];
   const tr = anchor("goku_trail", vf);
@@ -41,7 +41,7 @@ const adir = (vf, chest) => {
   const n = Math.hypot(ax, ay) || 1;
   return [ax / n, ay / n];
 };
-// sét trời (giống useFxUniforms): FX_BOLT=1 ép loé để xem thử
+// sky lightning (like useFxUniforms): FX_BOLT=1 forces a flash for previewing
 const CUTS = [0, ...TL.markers.filter((m) => m.name === "cut").map((m) => m.f)];
 const lastCut = (f) => CUTS.filter((c) => c <= f).pop() || 0;
 const hash1 = (x) => { const s = Math.sin(x * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -51,7 +51,7 @@ const bolt = (t) => {
   return [age > 1 || hash1(seed * 3.1) > track("lightning", t) ? 0 : age < 0.35 || (age > 0.55 && age < 0.8) ? 1 : 0.25, seed % 1000];
 };
 const [out, ...times] = process.argv.slice(2);
-const W = 402, H = 874, SCALE = 2; // iPhone 17 Pro (pt), vẽ @2x
+const W = 402, H = 874, SCALE = 2; // iPhone 17 Pro (pt), drawn @2x
 
 const track = (name, t) => {
   const a = TL.tracks[name];
@@ -72,7 +72,7 @@ require(path.join(APP, "node_modules/canvaskit-wasm/bin/full/canvaskit.js"))({
   const fx = CK.RuntimeEffect.Make(src("src/cinematic/shaders/composite.ts"), console.error);
   const tiles = [];
   for (const t of times.map(Number)) {
-    // FX_STILL=1: VIDEO là một khung pack đơn lẻ (PNG) của đúng giây t (thử shader trước khi render cả phim)
+    // FX_STILL=1: VIDEO is a single pack frame (PNG) for exactly second t (test the shader before rendering the whole film)
     const png = execFileSync("ffmpeg", ["-loglevel", "error", "-ss", process.env.FX_STILL ? "0" : String(t), "-i", VIDEO, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-"], { maxBuffer: 1 << 28 });
     const img = CK.MakeImageFromEncoded(png);
     const vf = t * TL.fps;
@@ -91,7 +91,7 @@ require(path.join(APP, "node_modules/canvaskit-wasm/bin/full/canvaskit.js"))({
       finger[0], finger[1], bp[0], bp[1], finger[2] > 0 ? track("blast", t) : 0, bp[0], bp[1], bp[2] > 0 ? life : -1, ...hitU(vf),
       chest[2], finger[2], target[2], bp[2], ...adir(vf, chest), ...bolt(t)];
     const child = img.makeShaderOptions(CK.TileMode.Clamp, CK.TileMode.Clamp, CK.FilterMode.Linear, CK.MipmapMode.None);
-    const shader = fx.makeShaderWithChildren(u.slice(0, fx.getUniformFloatCount()), [child]); // bản shader cũ ít uniform hơn
+    const shader = fx.makeShaderWithChildren(u.slice(0, fx.getUniformFloatCount()), [child]); // older shader versions have fewer uniforms
     const surf = CK.MakeSurface(W * SCALE, H * SCALE);
     const c = surf.getCanvas();
     c.scale(SCALE, SCALE);

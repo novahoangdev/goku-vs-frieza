@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Toàn bộ pipeline: vẽ texture mặt → dựng scene → render 4 pass (beauty/matte/energy/depth) → bake timeline
-# → tổng hợp âm thanh → pack video.
-#   tools/build.sh            bản final (100%, 16 sample, motion blur)
-#   PREVIEW=1 tools/build.sh  bản xem nhanh (50%, 6 sample)
+# Full pipeline: paint face textures → build the scene → render 4 passes (beauty/matte/energy/depth) → bake timeline
+# → synthesize audio → pack the video.
+#   tools/build.sh            final build (100%, 16 samples, motion blur)
+#   PREVIEW=1 tools/build.sh  quick preview (50%, 6 samples)
 set -eo pipefail
 cd "$(dirname "$0")/.."
 BLENDER=${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender}
@@ -13,7 +13,7 @@ if [[ "${PREVIEW:-0}" == 1 ]]; then RARGS=(--pct 50 --samples 6); else RARGS=(--
 "$BLENDER" -b blender/goku_vs_frieza.blend -P blender/scripts/bake_timeline.py 2>&1 | grep -E "BAKED|Error|Traceback" || true
 "$BLENDER" -b blender/goku_vs_frieza.blend -P blender/scripts/render_passes.py -- --out render "${RARGS[@]}" "$@" 2>&1 \
   | grep -E "── render|Error|Traceback" || true
-# nhạc nền riêng (tuỳ chọn): render/audio/bgm.mp3|m4a|aac|flac|ogg → bgm.wav 48 kHz; synth_audio dùng nó thay nhạc tổng hợp
+# custom background music (optional): render/audio/bgm.mp3|m4a|aac|flac|ogg → 48 kHz bgm.wav; synth_audio uses it instead of synth music
 for f in render/audio/bgm.{mp3,m4a,aac,flac,ogg}; do
   [[ -f "$f" ]] && ffmpeg -y -loglevel error -i "$f" -ar 48000 -ac 2 render/audio/bgm.wav && echo "BGM $f" && break
 done

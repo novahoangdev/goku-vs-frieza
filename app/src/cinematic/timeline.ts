@@ -1,4 +1,4 @@
-// Dữ liệu xuất từ Blender (blender/scripts/bake_timeline.py) và các hàm đọc chạy được trong worklet.
+// Data exported from Blender (blender/scripts/bake_timeline.py) and readers that run inside worklets.
 import { makeMutable } from "react-native-reanimated";
 import data from "../../assets/cinematic/timeline.json";
 
@@ -7,8 +7,8 @@ export const FRAMES: number = data.frames;
 export const DURATION = FRAMES / FPS;
 
 /**
- * Phim được giãn nhịp theo shot (blender/scripts/retime.py). Các mốc thời gian viết tay trong app vẫn theo phim
- * 20 s gốc → quy đổi qua bản đồ frame cũ → mới ghi trong timeline.json (bản cũ không có: giữ nguyên).
+ * The film is retimed per shot (blender/scripts/retime.py). Hand-written times in the app still refer to the original
+ * 20 s film → mapped through the old → new frame map in timeline.json (older builds lack it: unchanged).
  */
 const RETIME = ((data as { retime?: number[][] }).retime ?? [[0, 0], [1200, 1200]]) as [number, number][];
 export const rtf = (f: number) => {
@@ -19,17 +19,17 @@ export const rtf = (f: number) => {
   }
   return f;
 };
-/** giây theo phim gốc → giây trong phim đã giãn */
+/** seconds in the original film → seconds in the retimed film */
 export const rts = (sec: number) => rtf(sec * FPS) / FPS;
 export const PLATE = { w: data.plate[0], h: data.plate[1] };
-/** Vùng hiển thị ở giữa plate; phần lề còn lại dành cho camera ảo rung / punch-in. */
+/** Visible area in the middle of the plate; the remaining margin is for virtual camera shake / punch-in. */
 export const VISIBLE = { w: 1080, h: 2340 };
 
 type Store = { tracks: Record<string, number[]>; anchors: Record<string, number[]> };
 /**
- * Dữ liệu track/anchor (~35 nghìn số) đi sang UI runtime đúng MỘT lần qua shared value này, rồi được
- * cache vào global của runtime đó. Không capture mảng vào worklet, cũng không `.get()` mỗi frame:
- * cả hai cách đều tạo bản sao mới liên tục và làm Hermes trên UI thread hết bộ nhớ.
+ * Track/anchor data (~35k numbers) crosses to the UI runtime exactly ONCE through this shared value, then gets
+ * cached in that runtime's globals. Never capture the arrays in a worklet or `.get()` them every frame:
+ * both keep creating fresh copies and run Hermes on the UI thread out of memory.
  */
 const store = makeMutable<Store>({
   tracks: data.tracks as Record<string, number[]>,
@@ -48,7 +48,7 @@ export const HAPTICS = markers
   .map((m) => ({ t: m.f / FPS, style: m.name.slice(7) }));
 export const CUTS = [0, ...markers.filter((m) => m.name === "cut").map((m) => m.f)];
 export const EXPLOSIONS = markers.filter((m) => m.name === "haptic:medium").map((m) => m.f);
-/** Đoạn Kamehameha chèn trước shot kết (frame mới; bản cũ không có thì null). */
+/** Kamehameha segment inserted before the final shot (new frames; null in older builds). */
 const kame0 = markers.find((m) => m.name === "kame:start");
 const kame1 = markers.find((m) => m.name === "kame:end");
 export const KAME = kame0 && kame1 ? { f0: kame0.f, f1: kame1.f } : null;
@@ -69,7 +69,7 @@ export const SHOTS = [
   .concat(KAME ? [{ f: KAME.f0, name: "Kamehameha" }] : [])
   .sort((a, b) => a.f - b.f);
 
-/** Nội suy tuyến tính một track theo thời gian (giây). */
+/** Linearly interpolates a track at a time (seconds). */
 export const track = (name: string, t: number) => {
   "worklet";
   const arr = tl().tracks[name];
@@ -79,7 +79,7 @@ export const track = (name: string, t: number) => {
   return arr[i] + (arr[j] - arr[i]) * (f - i);
 };
 
-/** Anchor (px plate) ở đúng frame video đang hiển thị; z < 0 nghĩa là nằm sau camera. */
+/** Anchor (plate px) at the video frame on screen; z < 0 means behind the camera. */
 export const anchor = (name: string, frame: number): [number, number, number] => {
   "worklet";
   const arr = tl().anchors[name];
@@ -87,7 +87,7 @@ export const anchor = (name: string, frame: number): [number, number, number] =>
   return [arr[i], arr[i + 1], arr[i + 2]];
 };
 
-/** Frame của cut gần nhất ≤ f: hạt và tia sét đổi seed sau mỗi cut. */
+/** Frame of the latest cut ≤ f: particles and lightning change seed after each cut. */
 export const lastCut = (f: number) => {
   "worklet";
   let c = 0;
@@ -104,7 +104,7 @@ export const hash = (x: number) => {
   return s - Math.floor(s);
 };
 
-/** Value noise 1D trong khoảng -1..1 cho rung màn hình. */
+/** 1D value noise in -1..1 for screen shake. */
 export const n1 = (x: number) => {
   "worklet";
   const i = Math.floor(x);

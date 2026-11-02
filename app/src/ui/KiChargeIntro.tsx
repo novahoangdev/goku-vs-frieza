@@ -7,8 +7,8 @@ import { fireHaptic } from "../cinematic/haptics";
 const CHARGE_SECONDS = 1.5;
 
 /**
- * Màn "Giữ để gồng Ki": giữ tay thì thanh Ki đầy dần trong 1.5s (haptic dày dần, màn hình rung theo
- * `charge`), thả sớm thì tụt về. Đầy thì gọi `onCharged`.
+ * "Hold to charge Ki" screen: while held, the Ki bar fills over 1.5s (haptics speed up, the screen shakes with
+ * `charge`); releasing early drains it. Calls `onCharged` when full.
  */
 export function KiChargeIntro({
   charge,
@@ -18,7 +18,7 @@ export function KiChargeIntro({
 }: {
   charge: SharedValue<number>;
   enabled: boolean;
-  /** Chế độ quay demo: tự giữ tay sau 1.2s. */
+  /** Demo recording mode: auto-hold after 1.2s. */
   autoHold?: boolean;
   onCharged: () => void;
 }) {
