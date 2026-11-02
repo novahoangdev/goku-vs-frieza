@@ -1,23 +1,23 @@
-# v3: bầu trời / mặt đất / biển vẽ tay + nét mặt sống động
+# v3: hand-painted sky / ground / sea + lively expressions
 
-Cảnh (ảnh sinh bằng Codex image gen, lưu ở blender/textures/)
-- Bầu trời Namek vẽ kiểu nền anime Toei: trời xanh bạc hà có mây cumulus, chuyển sang trời giông xanh thẫm có
-  tia nắng vàng xuyên mây và sét khi Goku biến hình. Ảnh 2:1 quấn quanh 360°, chân ảnh (biển + mesa xa) khớp chân trời.
-- Mặt đất cỏ Namek vẽ tay lặp liền mạch, tối dần khi trời giông; bỏ thảm cỏ loang và mây khối 3D (ảnh trời đã có mây).
-- Biển vẽ tay có gợn và ánh lấp lánh, nước trôi chậm.
+Scene (images generated with Codex image gen, stored in blender/textures/)
+- Namek sky painted in the style of Toei anime backgrounds: mint-blue sky with cumulus clouds, shifting to a dark blue storm sky with
+  golden sunbeams through the clouds and lightning when Goku transforms. 2:1 image wrapped around 360°, the bottom of the image (sea + distant mesas) matches the horizon.
+- Hand-painted, seamlessly tiling Namek grass ground that darkens as the storm comes; removed the patchy grass and the 3D cloud volumes (the sky image already has clouds).
+- Hand-painted sea with ripples and sparkles, water drifting slowly.
 
-Nét mặt và chuyển động
-- Chớp mắt: Goku (cả dạng thường lẫn SSJ) và Frieza.
-- Lúc hét biến hình mắt nhắm tịt "> <".
-- Frieza hoảng hốt khi mất dấu Goku: mắt mở to con ngươi nhỏ, há miệng; shot 9a đẩy máy vào mặt Frieza.
-- Tóc SSJ rung trong luồng khí (mạnh lúc vừa biến hình, nhẹ dần).
-- Tóc SSJ bớt phát sáng sau biến hình để giữ màu vàng đậm.
+Expressions and motion
+- Blinking: Goku (both base form and SSJ) and Frieza.
+- While screaming during the Super Saiyan transformation the eyes squeeze shut "> <".
+- Frieza panics when he loses track of Goku: wide eyes with tiny pupils, open mouth; shot 9a pushes the camera in on Frieza's face.
+- SSJ hair shakes in the Ki flow (strong right after the transformation, fading out).
+- SSJ hair glows less after the transformation to keep its deep yellow.
 
-Góc máy
-- Shot cuối: Goku hiên ngang góc thấp trước bầu trời giông có sét (v2 lùi máy khiến Goku nhỏ ở góc khung).
+Camera angles
+- Final shot: Goku standing tall from a low angle against the stormy sky with lightning (v2 pulled the camera back, leaving Goku small in a corner of the frame).
 
-Hiệu ứng trong app
-- Aura gọn hơn: bỏ lớp cam nhạt loang khi bay, cận cảnh chỉ còn quầng sát người.
+In-app effects
+- Tighter aura: removed the pale orange wash while flying; close-ups only keep a halo hugging the body.
 
-Clip demo
-- Có nhãn phiên bản nhỏ ở góc dưới trái.
+Demo clip
+- Small version label in the bottom-left corner.

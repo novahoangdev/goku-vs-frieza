@@ -1,39 +1,39 @@
-# v25: vật lý cho hiệu ứng (nước, đá văng, khe nứt nguội) + tiếng nước
+# v25: physics for the effects (water, flying rocks, cooling cracks) + water sounds
 
-## Kamehameha trên mặt biển
-- Goku và Frieza hạ xuống lướt sát mặt biển (chân Goku cách nước 1.3 m, trước là ~6.5 m: mọi phản ứng của nước đều nằm
-  ngoài khung hình). Đoạn chèn bắt đầu và kết thúc bằng cut nên không lệch với shot trước/sau.
-- Shot A hạ máy nhìn chếch xuống để thấy mặt nước dưới chân.
-- Tụ khí: áp lực khí đẩy nước thành các vòng sóng loang dồn dập dần (vòng càng rộng khi khí càng mạnh); bọt nước bị
-  hất lên rơi theo đường đạn thật (g = 9.8 m/s² ở 60 fps), giọt kéo dài theo vận tốc.
-- Vòng sóng gợn méo, bản bọt dày mỏng không đều (không tròn như vẽ compa).
-- "HA!": phản lực đẩy một vòng sóng lớn loang nhanh dưới chân. Goku bị đẩy lùi suốt lúc tia còn bắn (0.47 m, trước
-  0.22 m rồi đứng yên), gốc tia bám theo hai bàn tay từng frame (trước gốc tia đứng yên giữa không trung, lệch khỏi tay).
-- Ánh tia phản chiếu trên mặt nước: dải sáng thuôn chạy theo đầu tia; vụ nổ rọi xuống thành vũng sáng tròn trên mặt
-  biển, to theo khối nổ rồi tắt.
-- Tia chạy trên mặt nước: hai vách bọt răng cưa dạt ra hai bên dưới đường tia, chạy theo đầu tia (trễ 3 frame), sụp khi tia tắt.
-- Trúng Frieza: sóng xung kích chạm mặt nước sau ~3 frame → vương miện nước (vách thấp loe + tia nước nhọn toả ra
-  ngoài) phun cao rồi sụp dần; sóng tròn lớn loang ra xa 15 m.
-- Tiếng: bọt nước lách tách + sóng vỗ trầm dày dần theo lúc tụ khí, xé nước lúc bắn, ầm nước đổ khi nổ, mưa giọt rơi lộp độp sau đó.
+## Kamehameha over the sea
+- Goku and Frieza descend to skim the sea surface (Goku's feet 1.3 m above the water, before ~6.5 m: every water reaction was
+  out of frame). The inserted sequence starts and ends on a cut, so it doesn't mismatch the shots before/after.
+- Shot A lowers the camera to look down at an angle so the water under his feet is visible.
+- Charging: the Ki pressure pushes the water into ring waves spreading at an increasing pace (the stronger the Ki, the wider the rings); spray
+  thrown up falls on real ballistic paths (g = 9.8 m/s² at 60 fps), droplets stretched by velocity.
+- Ring waves are rippled and distorted, the foam bands unevenly thick and thin (not perfect compass circles).
+- "HA!": the recoil pushes a big ring wave spreading fast under his feet. Goku is pushed back the whole time the beam is firing (0.47 m, before
+  0.22 m and then standing still), and the beam's origin follows both hands every frame (before, the origin stayed fixed in midair, drifting away from the hands).
+- Beam light reflected on the water: a tapered light streak following the beam head; the explosion casts a round pool of light on the sea
+  surface, growing with the blast and then fading.
+- The beam running over the water: two jagged foam walls pushed aside under the beam path, following the beam head (3 frames behind), collapsing when the beam ends.
+- Hitting Frieza: the shockwave reaches the water after ~3 frames → a water crown (low flared wall + sharp water jets spraying
+  outward) shoots up then slowly collapses; a big ring wave spreads out to 15 m.
+- Sound: crackling spray + deep lapping waves growing denser while charging, water tearing while firing, crashing water on the explosion, pattering droplets raining down afterwards.
 
-## Biến hình
-- Đá vụn: khí nhấc lơ lửng như cũ, vụ nổ biến hình hất văng theo đường đạn, chạm đất nảy (hồi phục 0.35, ma sát cỏ
-  hãm trượt và xoay) rồi nằm yên trên cỏ; lần chạm đất đầu bung một cụm bụi đất (to theo cỡ đá và tốc độ rơi). Trước: key tay, đá cắm xuống dưới mặt đất. Giữ đúng số lần gọi `random`
-  để các vật ngẫu nhiên khác không đổi.
-- Khe nứt: rực vàng lúc gồng, loé trắng lúc nổ biến hình, nguội dần thành cam rồi thành khe tối ánh than hồng
-  (trước: sáng vàng mãi đến hết phim). Lớp energy cho glow cũng tắt theo.
+## Super Saiyan transformation
+- Rock debris: lifted and floating on the Ki as before, the transformation burst throws it on ballistic paths, it bounces on landing (restitution 0.35, grass friction
+  slowing the sliding and spinning) and then settles on the grass; the first impact kicks up a puff of dirt (sized by rock size and fall speed). Before: hand-keyed, rocks stuck into the ground. The number of `random` calls is kept exactly
+  the same so other random objects don't change.
+- Cracks: blazing yellow while powering up, flashing white at the transformation burst, cooling to orange and then to dark fissures with ember glow
+  (before: bright yellow all the way to the end of the film). The energy layer for the glow fades with them.
 
 ## Frieza
-- Cổ thon phía trên và dẹt trước-sau, cằm nhô ra trước cổ: trước đó mặt trước cổ nhô hơn cằm (0.079 so với 0.048) nên
-  đầu liền cổ như con ki bowling, không thấy đường hàm; giờ có viền cằm tròn rõ.
+- Neck slimmer at the top and flatter front-to-back, chin protruding in front of the neck: before, the front of the neck stuck out further than the chin (0.079 vs 0.048), so
+  the head merged into the neck like a bowling pin with no visible jawline; now there is a clear, rounded chin line.
 
-Render lại cả phim (Frieza có mặt hầu hết các shot).
+The whole film was re-rendered (Frieza appears in most shots).
 
-## Chi tiết khác
-- Mặt Goku SSJ không còn bị phủ mảng mờ trắng: lỗi cũ trong `tex_mat` (so node bằng `is not`, mà wrapper Python của
-  node bpy tạo mới mỗi lần truy cập → luôn đúng) làm lớp energy của miếng dán mắt không theo alpha, cả miếng chữ nhật
-  sáng lên và app bloom thành mảng trắng che nửa mặt, mắt nhạt màu. Giờ so theo tên; thêm nữa chỉ mống mắt (phần màu
-  xanh) phát sáng, tròng trắng + mi đen không vào lớp energy.
-- Hạt khí aura (app) toả quanh người, không còn lấm tấm như tuyết trên mặt/thân Goku.
-- Vệt bay truy đuổi: lõi nón mảnh hơn + 7 vệt khí dài ngắn toả quanh (trước một khối nón trơn như cái phễu tím/vàng).
-- Khe nứt nguội về màu nâu sẫm gần mép → một khe tối mảnh, không thành vạch nâu tô đậm.
+## Other details
+- SSJ Goku's face is no longer covered by a white haze: an old bug in `tex_mat` (comparing nodes with `is not`, but the Python wrappers of
+  bpy nodes are recreated on every access → always true) made the eye decal's energy layer ignore alpha, so the whole rectangle
+  lit up and the app bloomed it into a white patch over half the face, washing out the eyes. Now compared by name; also only the iris (the
+  blue part) is emissive, the eye white + black lashes are not on the energy layer.
+- Aura Ki particles (app) spread around the body, no longer speckled like snow on Goku's face/body.
+- Chase flight trails: thinner cone core + 7 energy streaks of varying length around it (before, a smooth cone like a purple/yellow funnel).
+- Cracks cool to a dark brown near the edges → a thin dark fissure, not a heavy brown stroke.

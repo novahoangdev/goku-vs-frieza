@@ -1,47 +1,47 @@
-# v19: tóc Goku giống nhân vật (so với mẫu FighterZ)
+# v19: Goku's hair looks like the character (compared with the FighterZ reference)
 
-Tóc SSJ (`goku_hair_forms`)
-- Bố cục lại theo mẫu FighterZ: hai lọn chóp to bản dựng gần thẳng đứng, gốc chúc ra trước rồi ngọn cong ngược ra sau
-  như ngọn lửa; trên-bên xoè ~30°, thái dương chĩa ngang rồi vút ngọn lên, trên tai chĩa ngang hếch nhẹ. Lọn to bản
-  hơn (~25%), ít lọn mảnh hơn → bóng dáng là khối lửa vài mũi lớn thay vì vòng gai đều như hoa cúc.
-- Nhìn từ sau: hai hàng lọn dài chĩa ra sau rồi hất lên + lọn gáy ngắn, không còn ôm sát sọ thành "bông atiso".
-- Mái: hai lọn lớn cong chữ S nổi hẳn trên chỏm, rủ xuống hai bên trán (lọn chính xuống lông mày phải nhân vật,
-  lọn phụ xuống thái dương trái) như mẫu; mép tóc trước cắt răng cưa nhẹ.
-- Bỏ dải gốc cam ở các lọn chóp phía trước (thành một đường ngang cắt khối tóc khi nhìn chính diện).
-- Màu nhạt hơn kiểu FighterZ: nền #FDE47A, bóng cam hổ phách #EFA93F, sáng #FFF2A8; bóng gốc #E9A53E.
-- Dáng ít hất ra sau hơn (sweep 0.35 → 0.22) nên đứng thẳng như tóc SSJ thật.
+SSJ hair (`goku_hair_forms`)
+- Re-laid out after the FighterZ reference: two wide top locks standing nearly upright, the base leaning forward then the tip curving back
+  like a flame; upper-side locks fanned ~30°, temple locks pointing sideways then flicking up at the tips, locks above the ears pointing sideways with a slight upturn. Wider
+  locks (~25%), fewer thin locks → the silhouette is a flame mass of a few big points instead of an even ring of spikes like a daisy.
+- From behind: two rows of long locks pointing back then flicking up + short nape locks, no longer hugging the skull like an "artichoke".
+- Bangs: two big S-curved locks standing out on the crown, falling down both sides of the forehead (the main lock down to the character's right eyebrow,
+  the secondary lock down to the left temple) as in the reference; the front hairline slightly jagged.
+- Removed the orange base band on the front top locks (it read as a horizontal line cutting through the hair mass when seen head-on).
+- Paler, FighterZ-style colors: base #FDE47A, amber-orange shadow #EFA93F, highlight #FFF2A8; base shadow #E9A53E.
+- Less swept back (sweep 0.35 → 0.22) so it stands upright like real SSJ hair.
 
-Tóc đen (dạng thường)
-- Mép tóc trước cắt răng cưa thành 6 mũi mái nhọn lệch kiểu Goku (mũi sâu nhất lệch phải nhân vật) thay cho vòng
-  cung trơn như băng đô; 3 lọn mái lớn nổi trên chỏm, rủ chéo xuống trán. Giảm gờ phồng trước trán (vết cung sáng).
-- Bỏ lọn chóp dựng đứng ngay trên trán (tạo hình bông sen nhìn chính diện), thay bằng lọn chúc ra trước rồi ngả
-  sang bên.
+Black hair (base form)
+- The front hairline cut into 6 jagged, uneven pointed bangs in Goku's style (the deepest point offset to the character's right) instead of a smooth
+  arc like a headband; 3 big bang locks standing out on the crown, falling diagonally over the forehead. Reduced the bulging ridge at the front of the forehead (the light arc).
+- Removed the upright top lock right above the forehead (which created a lotus shape when seen head-on), replaced with a lock leaning forward then tilting
+  to the side.
 
-Cả hai dạng
-- Mặt cắt lọn tóc: 2 cung lồi gặp nhau ở gờ sống và mép (thay hình thoi 8 cạnh) → mỗi nửa lọn một ranh sáng-tối
-  gọn, chỉ gờ + mép sắc; hết lấm tấm mặt kim cương khi lọn xoắn.
+Both forms
+- Lock cross-section: 2 convex arcs meeting at the spine ridge and the edges (instead of an 8-sided diamond) → each half of a lock has one clean light-dark
+  boundary, only the ridge + edges are sharp; no more diamond-facet speckling when locks twist.
 
-Mặt Goku (`face_textures.py`, key biểu cảm trong `build_scene.py`)
-- Mắt dạng thường: tròng đen (trước là xám tím như mắt búp bê), mi trên phẳng hơn và xếch nhẹ, đuôi mi ngắn (bỏ vẩy
-  cong kiểu mắt con gái), vầng sáng đáy tròng tối lại → mắt to thân thiện nhưng là mắt con trai như Goku.
-- Lông mày dạng thường: rậm, gần thẳng, xếch nhẹ, đầu trong cắt vuông (trước là cung mảnh bị mái che gần hết).
-- Gồng Ki (236–292): nghiến răng đi cùng mày giận, trước đó mặt vẫn cười trong lúc mày cau.
+Goku's face (`face_textures.py`, expression keys in `build_scene.py`)
+- Base-form eyes: black irises (before, a doll-like gray-purple), flatter and slightly upturned upper lashes, short lash tails (removed the curly flick
+  of girlish eyes), darker glow at the bottom of the iris → big, friendly eyes, but a boy's eyes like Goku's.
+- Base-form eyebrows: thick, nearly straight, slightly upturned, squared inner ends (before, a thin arc mostly hidden by the bangs).
+- Charging Ki (236–292): gritted teeth together with the angry brows; before, the face was still smiling while the brows frowned.
 
 Frieza (`build_frieza`, `fr_head_surf`)
-- Bớt mảnh khảnh (trước nhìn như bóng đèn cắm trên que): cổ dày hơn ~40% có cơ ức đòn chũm loe xuống vai, ngực nở
-  hơn ~10%, eo + hông đầy hơn, bắp tay trên và đùi chắc hơn ~20%.
-- Quai hàm thon vừa phải: cằm hết nhọn kiểu bóng đèn, mặt tròn đầy như Frieza chibi.
+- Less scrawny (before, he looked like a light bulb stuck on a stick): neck ~40% thicker with sternocleidomastoid muscles flaring to the shoulders, chest
+  ~10% broader, fuller waist + hips, upper arms and thighs ~20% sturdier.
+- Moderately tapered jaw: the chin is no longer pointed like a light bulb, the face is round and full like a chibi Frieza.
 
-Tay Goku
-- Bắp tay + cẳng tay dựng lại bằng khối tròn xoay liền mạch (trước là 2 viên thuốc thẳng, hở khớp như ma-nơ-canh gỗ):
-  bắp tay trước nhô ngay dưới tay áo, cơ tam đầu phía sau, cẳng tay phình gần khuỷu rồi thon vào băng cổ tay.
+Goku's arms
+- Upper arms + forearms rebuilt as seamless lathed shapes (before, 2 straight capsules with gaps at the joints like a wooden mannequin):
+  biceps bulging right below the sleeve, triceps at the back, the forearm swelling near the elbow then tapering into the wristband.
 
-Chi tiết trang phục Goku
-- Viền sáng của vải xanh (đai, băng cổ tay, áo trong) và giày dùng màu xanh tươi riêng: trước trộn với viền vàng SSJ
-  thành dải xám be quanh mép đai và băng cổ tay.
-- Nút đai thắt thật + 2 đuôi đai là dải vải dẹt loe dần, rủ chéo (trước là một viên thuốc tròn như cái thìa).
-- Frieza: giáp vai thành vòm (đáy ép phẳng ôm vai) + mép đáy tím sẫm mảnh, thay vòng lilac sáng quanh quả cầu
-  (nhìn như sao Thổ).
-- Goku: bỏ 2 khối vai áo cam rời (nhô lên như 2 cục núm ở đầu ve áo), thân áo đã phủ tới vai nên ve chữ V chạy gọn
-  qua vai như áo FighterZ. Cổ to hơn chút, bóng cằm trên cổ võng chữ U rõ (trước là mép thẳng như dán băng).
-- Lông mày SSJ vàng nghệ (#E6AE24, viền nâu cam) hợp tóc vàng nhạt mới (trước nâu vàng).
+Goku's outfit details
+- The rim light on blue cloth (sash, wristbands, undershirt) and boots uses its own vivid blue: before, it mixed with the SSJ yellow rim
+  into a gray-beige band around the edges of the sash and wristbands.
+- A real tied sash knot + 2 sash tails as flat cloth strips widening gradually, hanging diagonally (before, a round capsule like a spoon).
+- Frieza: shoulder pads become domes (flattened base hugging the shoulder) + a thin dark purple bottom edge, replacing the bright lilac ring around a sphere
+  (which looked like Saturn).
+- Goku: removed the 2 separate orange shoulder pieces (sticking up like 2 knobs at the ends of the lapels); the gi body already covers the shoulders, so the V lapels run cleanly
+  over the shoulders like the FighterZ gi. Slightly thicker neck, the chin shadow on the neck has a clear U curve (before, a straight edge like a strip of tape).
+- SSJ eyebrows in saffron yellow (#E6AE24, orange-brown outline) to match the new pale golden hair (before, yellow-brown).

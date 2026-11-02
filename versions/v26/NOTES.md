@@ -1,41 +1,41 @@
-# v26: chi tiết nhỏ (làm đêm)
+# v26: small details (overnight session)
 
-- Frieza có mũi: hai lỗ mũi nhỏ xếch tím sẫm + bóng mềm dưới sống mũi (decal `frieza_nose`), trước mặt trơn như mặt nạ.
-- Chuyển động thứ cấp có quán tính (`secondary.py`, chạy cuối build sau retime + Kamehameha): lò xo – giảm chấn
-  (tần số riêng ~0.5 s, tắt sau ~2 nhịp) theo gia tốc của đầu/hông trong hệ toạ độ của chính nó.
-  - Đuôi Frieza: tăng tốc lên → đuôi trễ xuống, rẽ ngang → đuôi văng ngược phía; chóp quất mạnh hơn gốc, sóng lan
-    dọc đuôi (trễ 1.5 frame/đốt). Tối đa ±22°.
-  - Lực cản: bay càng nhanh đuôi càng bị kéo thẳng ra sau (bỏ tới 80% độ cong chữ S sẵn có khi ~18 m/s, lọc mượt),
-    đứng yên thì cong lại như cũ.
-  - Tóc Goku (đen + SSJ): lao tới → tóc ngả ra sau, rẽ → tóc lệch ngược phía, rồi đung đưa về. Tối đa ±11°.
-  - Cộng vào key sẵn có (rung trong luồng khí, lắc đuôi); reset ở mỗi cut và khi nhân vật dịch chuyển tức thời giữa
-    hai shot (> 0.9 m/frame) để không quất giả.
-- Cỏ ngả theo gió khí: shape key `ki_wind` trên `grass_tufts` + `env_grass_clumps` uốn mỗi ngọn ra ngoài xuyên tâm từ
-  chỗ Goku gồng (cong theo độ cao ngọn, yếu dần theo khoảng cách, tối đa ~66° sát Goku); phập phồng khi tụ khí, rạp
-  hẳn lúc nổ biến hình, dịu lại tới khi bay đi.
-- Tóc đen: thêm tông sáng thứ 3 xám lam ở mặt đón đèn (`hi` 1.35 → 0.82, trước không bao giờ chạm) + đốm bóng rõ hơn
-  → các lọn đen tách khối như tóc đen anime, không thành một mảng đen.
-- Tia Kamehameha: thân tia có vệt khí cuồn cuộn trôi từ tay ra phía trước (nhiễu kéo dài dọc tia cộng vào hệ số
-  Facing của ramp cel, trôi ~70 m/s), không còn là ống nhựa trơn.
-- Tiếng đá rơi: mỗi hòn đá vụn chạm đất (frame lấy từ mô phỏng đường đạn, marker `sfx:thud`) có một tiếng bịch trầm
-  + lạo xạo nhỏ, âm sắc/âm lượng/pan khác nhau (~-33 dB dưới nhạc, 46 tiếng trong ~1.5 s sau biến hình).
-- Kamehameha shot F (toàn cảnh sau lưng): lùi máy ra sau-phải → Goku trọn lưng ở 1/3 dưới-trái, tia dẫn mắt tới
-  khối nổ + vương miện nước (trước Goku bị cắt ở mép trái, chỉ thấy một mảng tóc).
-- Hơi nước: năng lượng nổ sát mặt biển làm nước bốc hơi → 9 cụm mây cel xám trắng (gồ ghề bằng noise) phồng lên
-  quanh chân khối nổ, toả ra và bay lên chậm dần tới hết đoạn.
-- Cầu Kamehameha: vật liệu riêng — lõi trắng nhỏ, các lớp xanh ngọc → lam → lam đậm ra mép (trước gần như trắng
-  toàn khối, nhìn như nắm cơm trong tay Goku).
-- Kamehameha shot E (tia trúng Frieza): lùi máy cách khối nổ ~5 m thay vì 2.6 m — trước cầu nổ + glow phủ trắng
-  cả khung ~0.5 s, giờ thấy trọn khối nổ, vòng sóng, vương miện nước.
+- Frieza has a nose: two small slanted dark purple nostrils + a soft shadow under the bridge (decal `frieza_nose`); before, the face was smooth like a mask.
+- Secondary motion with inertia (`secondary.py`, runs at the end of the build after retime + Kamehameha): spring–damper
+  (natural period ~0.5 s, settles after ~2 oscillations) driven by the acceleration of the head/hips in their own local frame.
+  - Frieza's tail: speeding up → the tail lags down, turning → the tail swings to the opposite side; the tip whips harder than the base, the wave travels
+    along the tail (1.5 frame delay per segment). Max ±22°.
+  - Drag: the faster he flies, the straighter the tail is pulled back (removing up to 80% of the built-in S curve at ~18 m/s, smoothed),
+    and it curls back as before when he is still.
+  - Goku's hair (black + SSJ): lunging forward → the hair leans back, turning → it shifts to the opposite side, then sways back. Max ±11°.
+  - Added on top of the existing keys (shaking in the Ki flow, tail sway); reset at every cut and when a character teleports between
+    two shots (> 0.9 m/frame) to avoid fake whips.
+- Grass bends with the Ki wind: shape key `ki_wind` on `grass_tufts` + `env_grass_clumps` bends each blade radially outward from
+  where Goku powers up (curving with blade height, weakening with distance, up to ~66° right next to Goku); pulsing while charging, fully
+  flattened at the transformation burst, easing off until he flies away.
+- Black hair: added a third, blue-gray light tone on the side facing the light (`hi` 1.35 → 0.82, before it was never reached) + stronger specular highlights
+  → the black locks separate into distinct shapes like anime black hair, instead of one black mass.
+- Kamehameha beam: the beam body has billowing energy streaks flowing from the hands forward (noise stretched along the beam added to the
+  Facing factor of the cel ramp, flowing at ~70 m/s), no longer a smooth plastic tube.
+- Falling rock sounds: every piece of rock debris hitting the ground (frames taken from the ballistic simulation, marker `sfx:thud`) gets a deep thud
+  + a small crunch, with varied timbre/volume/pan (~-33 dB under the music, 46 sounds in the ~1.5 s after the transformation).
+- Kamehameha shot F (wide shot from behind): camera pulled back to the rear-right → Goku's full back in the lower-left third, the beam leads the eye to
+  the explosion + water crown (before, Goku was cut off at the left edge, only a patch of hair visible).
+- Steam: the explosion energy right at the sea surface evaporates water → 9 gray-white cel cloud puffs (lumpy via noise) swell
+  around the base of the explosion, spreading out and rising more and more slowly until the end of the sequence.
+- Kamehameha sphere: its own material, a small white core with turquoise → blue → deep blue layers toward the edge (before, almost white
+  throughout, looking like a rice ball in Goku's hands).
+- Kamehameha shot E (beam hits Frieza): camera pulled back to ~5 m from the explosion instead of 2.6 m; before, the explosion sphere + glow blew the whole
+  frame out to white for ~0.5 s, now the whole explosion, the shock ring and the water crown are visible.
 
 ## App (shader)
-- Sét trời vẽ trong composite thay cho lớp `Lightning` phủ trên cùng: chỉ hiện ở chỗ depth là trời (> ~120 m) nên
-  nằm sau cột đá, tóc, người, mặt đất (trước sét vẽ đè qua đầu Goku). Lúc loé cả cảnh sáng lên một thoáng như sét rọi.
-- Vụ nổ ki blast: khí nóng nổi lên (quả cầu lửa → khói trôi dần lên trên khi nguội), lửa còn nóng rọi sáng người Goku
-  (cam ấm, yếu dần theo khoảng cách và khi lửa tàn).
-- Ánh sáng tràn: vật phát sáng không thuộc Goku (cầu khí, tia Kamehameha / Death Beam, vụ nổ dựng trong Blender) rọi
-  màu của nó lên người Goku (16 mẫu quanh điểm ảnh, gần sáng hơn xa); tóc SSJ là matte nên không tự rọi chính mình.
-- Hạt khí (Sparks): tia lửa vàng bốc dọc hai mép người như lửa aura, không còn rải đều lên mặt/thân (cận cảnh trước
-  nhìn như tuyết lấm tấm trên mặt Goku).
-- Glow lớp energy sáng theo chính màu vật phát sáng (70%) thay vì cộng màu vàng ấm cố định → mống mắt SSJ vẫn xanh
-  ngọc khi loé, không ngả xanh lục nhạt.
+- Sky lightning drawn in the composite instead of the `Lightning` layer on top: it only shows where the depth is sky (> ~120 m), so it
+  sits behind rock pillars, hair, characters and the ground (before, lightning was drawn over Goku's head). On each flash the whole scene briefly brightens as if lit by the lightning.
+- Ki blast explosions: hot gas rises (fireball → smoke drifting upward as it cools), the still-hot fire lights up Goku
+  (warm orange, weakening with distance and as the fire dies out).
+- Light spill: glowing objects that aren't part of Goku (energy ball, Kamehameha / Death Beam, explosions built in Blender) cast
+  their color onto Goku (16 samples around the pixel, closer is brighter); the SSJ hair is in the matte, so it doesn't light itself.
+- Ki particles (Sparks): golden sparks rising along both edges of the body like aura flames, no longer scattered evenly over the face/body (before, close-ups
+  looked like snow speckled on Goku's face).
+- The energy layer glow follows the glowing object's own color (70%) instead of adding a fixed warm yellow → SSJ irises stay turquoise
+  when they flash, instead of turning pale green.

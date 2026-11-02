@@ -1,28 +1,28 @@
-# v20: chăm chút từng chi tiết (tiếp v19)
+# v20: detail-by-detail polish (continuing v19)
 
-Tóc SSJ nhìn từ sau (`goku_hair_forms`)
-- Nửa dưới gáy: bỏ 4 lọn nhỏ xếp quanh tâm (nhìn từ sau / trên như quả thông, bông atiso — rõ ở shot 870, 1060),
-  thay bằng 1 lọn giữa bản to rủ xuống gáy + 2 lọn xoè chéo vút lên hai bên; hàng giữa 4 lọn to bản hơn, dựng đứng
-  hơn → từ sau là một khối lửa vài lọn lớn như FighterZ.
-- Ánh sáng tóc lúc vừa biến hình dịu lại (đỉnh 3.0 → 2.2, tắt nhanh hơn): với màu vàng nhạt mới, tóc lúc thét
-  (frame 306–340) trắng bệch thành cục bông; giờ vẫn vàng và thấy rõ từng lọn.
-- Đốm bóng trên tóc SSJ dịu lại (0.6 → 0.35, màu kem): trước là một vệt bầu dục trắng trên chỏm ngay trước trán.
-- Tóc mai SSJ trước tai to và dài hơn (0.06 → 0.085), viền khuôn mặt hai bên như mẫu.
+SSJ hair from behind (`goku_hair_forms`)
+- Lower half of the nape: removed the 4 small locks arranged around a center (from behind / above it looked like a pinecone or artichoke, clear in shots 870, 1060),
+  replaced with 1 wide center lock hanging down the nape + 2 locks fanning diagonally and flicking up on both sides; the 4-lock middle row is wider and more
+  upright → from behind it is a flame mass of a few large locks like FighterZ.
+- The hair glow right after the Super Saiyan transformation is softer (peak 3.0 → 2.2, fades faster): with the new pale yellow, the hair while screaming
+  (frames 306–340) went washed-out white like a cotton ball; now it stays yellow and every lock is clearly visible.
+- Softer specular highlight on the SSJ hair (0.6 → 0.35, cream color): before, it was a white oval streak on the crown right in front of the forehead.
+- SSJ sideburns in front of the ears bigger and longer (0.06 → 0.085), framing both sides of the face as in the reference.
 
-Tóc đen
-- Bỏ viền sáng (rim) trên tóc đen: trên nền gần đen, viền trắng mờ thành một vòng cung xám vắt ngang trên mái như
-  cái băng đô khi máy quay từ dưới lên (frame 150, 200). Đốm bóng xanh navy trên các lọn vẫn giữ.
-- Hai bên lệch nhau như tóc Goku thật (trước gần đối xứng như bông tulip): bên trái nhân vật lọn trên vút cao hơn,
-  lọn ngang chĩa ra dài và hơi rủ; bên phải lọn trên thấp, xoè ngang.
-- Lọn đỉnh và lọn chóp trước cong ngọn ra sau: nhìn nghiêng hết mũi dựng thẳng như cái sừng trên đỉnh đầu.
-- Lọn gáy ngắn lại, chĩa ra sau nhiều hơn rủ xuống: nhìn từ sau hết giống tóc dài phủ tới bả vai, lộ chữ 悟 sau lưng.
+Black hair
+- Removed the rim light on the black hair: on a near-black base, the faint white rim became a gray arc across the bangs like
+  a headband when the camera shot from below (frames 150, 200). The navy specular highlights on the locks are kept.
+- The two sides are asymmetric like real Goku hair (before, nearly symmetric like a tulip): on the character's left the top lock shoots higher,
+  the side lock sticks out longer and droops slightly; on the right the top lock is lower and fans sideways.
+- The top lock and front spike curve their tips backward: from the side, no more upright point like a horn on top of the head.
+- Shorter nape locks, pointing back more than hanging down: from behind it no longer looks like long hair reaching the shoulder blades, and the 悟 kanji on the back shows.
 
 Frieza
-- Quả cầu khí đầu ngón tay (Death Beam): lõi trắng nóng → dải hồng → viền tím hồng đậm theo góc nhìn kiểu cầu năng
-  lượng cel anime (trước là một đĩa hồng phẳng như miếng dán).
-- Viền sáng của giáp tím (vòm đầu, vai, cẳng tay, ống chân) dùng tím tươi thay cho gần trắng → mép giáp không bạc màu.
+- The fingertip energy ball (Death Beam): hot white core → pink band → deep purple-pink rim depending on viewing angle, like a cel anime energy
+  ball (before, a flat pink disc like a sticker).
+- The rim light on the purple armor (head dome, shoulders, forearms, shins) uses a vivid purple instead of near white → the armor edges don't wash out.
 
-Mặt Goku
-- Mắt dạng thường đen hẳn: vầng sáng đáy tròng tối lại thêm (#50546C → #3A3C50), nhìn xa không còn ánh xám xanh.
-- Mắt giận lúc gồng Ki (236–292): mi trên xếch gắt hơn, mi dưới nâng, tròng + đồng tử nhỏ lại → quyết liệt; trước mắt
-  vẫn to tròn nên đi cùng răng nghiến trông như đang lo lắng.
+Goku's face
+- Base-form eyes fully black: the glow at the bottom of the iris darkened further (#50546C → #3A3C50), no more gray-blue sheen from a distance.
+- Angry eyes while charging Ki (236–292): sharper upturned upper lids, raised lower lids, smaller iris + pupil → fierce; before, the eyes
+  stayed big and round, so together with the gritted teeth he looked worried.

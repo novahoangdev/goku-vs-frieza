@@ -1,33 +1,33 @@
-# v14: sửa shot hỏng + đá 3D + chỉnh lại đầu Goku và Frieza (3 agent song song)
+# v14: broken shots fixed + 3D rocks + reworked Goku and Frieza heads (3 parallel workstreams)
 
-Cảnh + camera (`build_scene.py`: `cam_for`, `build_env`; `extras/env_details.py`)
-- Shot zoom-out ngay sau biến hình (frame 300–390): v1–v13 camera chui xuống dưới mặt đất, nên nửa khung là mặt
-  dưới tấm đất màu xanh đục, Goku chỉ lộ đế giày, còn hạt ki vàng thì lơ lửng giữa không trung. Giờ camera ở thấp
-  ngang gối (góc hùng tráng), thấy rõ đường chân trời, cột đá, Goku SSJ trọn người đứng trên khe nứt.
-- Cận mặt Goku hét lúc gồng (frame 240–300): trước đẩy sát tới mức cả màn hình là mảng da phẳng với cái miệng ở
-  dưới; giờ dừng ở khoảng thấy rõ mắt nhắm chặt + miệng hét, 4 frame cuối mới giật zoom.
-- Đá vụn trên cỏ: trước là các mảng nâu phẳng như vết bẩn; giờ là cục đá 3D méo tự nhiên, 3 tông xanh xám có viền,
-  sáng mặt trên tối mặt dốc, mờ theo khoảng cách như mặt đất; bớt còn ~40% số đá rải và gom thành cụm nhỏ.
-- Shot quay thấp vòng quanh Goku lúc gồng (frame 120–240): đá vụn bay lên ngay trước ống kính che nửa người Goku;
-  giờ hòn nào có lúc cách camera < 2.4 m bị dời ra xa (`extras/debris_clear.py`), đá vẫn bay lên quanh Goku ở phía sau.
+Scene + camera (`build_scene.py`: `cam_for`, `build_env`; `extras/env_details.py`)
+- Zoom-out shot right after the Super Saiyan transformation (frames 300–390): in v1–v13 the camera dipped below the ground, so half the frame was the
+  murky green underside of the ground slab, only Goku's boot soles showed, and the golden ki particles floated in midair. Now the camera sits low
+  at knee height (a heroic angle), clearly showing the horizon, rock pillars, and SSJ Goku's full body standing over the cracks.
+- Close-up of Goku screaming while powering up (frames 240–300): before, it pushed in so close that the whole screen was a flat patch of skin with the mouth at
+  the bottom; now it stops where the squeezed-shut eyes + screaming mouth are clearly visible, with the zoom jolt only in the last 4 frames.
+- Rock debris on the grass: before, flat brown patches like dirt stains; now naturally lumpy 3D rocks, 3 gray-green tones with outlines,
+  lit on top and darker on the slopes, fading with distance like the ground; cut down to ~40% of the scattered rocks and grouped into small clusters.
+- Low orbiting shot around Goku while powering up (frames 120–240): flying rock debris rose right in front of the lens, hiding half of Goku;
+  now any rock that ever gets closer than 2.4 m to the camera is moved further away (`extras/debris_clear.py`), and rocks still rise around Goku in the background.
 
 Goku (`build_goku`, `face_textures.py`)
-- Tóc cả hai dạng dựng lại: lớp tóc ôm đầu có chân tóc thật (trước là quả cầu úp lên đầu, nhìn 3/4 thủng một lỗ).
-- Goku tóc đen: mái là các lọn nhọn nằm trên trán (lọn giữa dài, hai lọn ngắn dừng trên lông mày, lọn thái dương,
-  tóc mai) chừa khe để thấy trán và lông mày; v13 tóc trùm kín trán như đội mũ bảo hiểm. Gai bên trước che tai giờ
-  chĩa ra ngoài phía trên tai.
-- SSJ: một lọn mái đặc trưng giữa trán + một lọn ngắn, lộ trán nhiều hơn.
-- Bỏ mảng sáng hình bầu dục quanh miệng SSJ (nhìn như mõm chó): là dải highlight của chất liệu da, giờ đầu dùng
-  chất liệu da riêng không có dải đó.
-- Có tai nhỏ tròn hai bên (lòng tai tối), lông mày đậm hơn (đầu trong dày, đuôi nhọn), miệng cười/nhếch to hơn ~35%.
+- Hair rebuilt for both forms: the hair layer hugging the head has a real hairline (before it was a sphere capped over the head, with a hole in 3/4 view).
+- Black-haired Goku: the bangs are pointed locks lying on the forehead (long middle lock, two short ones stopping above the eyebrows, temple locks,
+  sideburns) leaving gaps to show the forehead and eyebrows; in v13 the hair covered the whole forehead like a helmet. The front side spikes that covered the ears now
+  point outward above the ears.
+- SSJ: one signature bang lock in the middle of the forehead + one short lock, showing more forehead.
+- Removed the oval light patch around the SSJ mouth (it looked like a dog's snout): it was the skin material's highlight band; the head now uses
+  its own skin material without that band.
+- Small round ears on both sides (dark inner ear), bolder eyebrows (thick inner end, pointed tail), smiling/smirking mouth ~35% larger.
 
 Frieza (`build_frieza`, `extras/frieza_form.py`, `extras/frieza_details.py`)
-- Vòm tím trên đầu dựng lại thành chỏm lớn đúng dạng cuối: mép trước ngay trên lông mày, hai bên xuống sát lỗ tai,
-  sau gáy xuống thấp; viền mép liền một đường sạch (v1–v13 chỉ là một dải tím mỏng ở chân tóc).
-- Thân chibi chắc hơn: hông rõ, ngực nở thon về eo, cổ và đùi dày thon về gối, gối/giáp ống chân/bàn chân to hơn,
-  bắp tay + giáp tay + bàn tay + vòm vai to hơn; đuôi gốc to vuốt nhọn. Ngọc ngực dời ra trước theo ngực mới.
-- Lỗ tai nổi khối (vành nổi + lòng tối). Dấu gân giận nằm trên vòm, giọt mồ hôi dời xuống thái dương.
-- Sửa lỗi: các chi tiết thêm (vệt bóng, múi bụng, ngón chân, viền vai) không tắt theo Frieza ở frame 1151.
+- The purple dome on the head rebuilt as a large cap in the true final-form shape: front edge right above the brows, sides coming down to the ear holes,
+  low at the back of the head; the edge is one clean continuous line (in v1–v13 it was just a thin purple band at the hairline).
+- Sturdier chibi body: defined hips, broad chest tapering to the waist, thicker neck and thighs tapering to the knees, bigger knees/shin guards/feet,
+  bigger biceps + arm guards + hands + shoulder domes; thick tail base tapering to a point. Chest gem moved forward to match the new chest.
+- Ear holes with volume (raised rim + dark inside). The anger vein sits on the dome, the sweat drop moved down to the temple.
+- Fix: the added details (sheen streaks, abs, toes, shoulder rims) did not turn off with Frieza at frame 1151.
 
 App
-- Bản quay demo tắt tiếng trong simulator (clip promo vẫn lấy tiếng từ mix.wav).
+- The demo recording is muted in the simulator (the promo clip still takes its audio from mix.wav).

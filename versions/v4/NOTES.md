@@ -1,33 +1,33 @@
-# v4: ánh sáng nhân vật kiểu anime + trang phục chi tiết + cảnh vẽ tay toàn bộ
+# v4: anime-style character lighting + detailed outfits + fully hand-painted scene
 
-Ánh sáng
-- Đèn key riêng cho nhân vật gắn theo camera (chiếu từ trên-trái khung hình) bằng light linking: shot nào Goku/Frieza
-  cũng sáng rõ, có vùng tối gọn một bên kiểu anime. Mặt trời thế giới chỉ chiếu cảnh, vẫn đổ bóng nhân vật xuống đất.
+Lighting
+- A dedicated key light for the characters, tied to the camera (shining from the top-left of the frame) via light linking: Goku/Frieza
+  are clearly lit in every shot, with a clean shadow side in anime style. The world sun only lights the scene but still casts the characters' shadows on the ground.
 
-Trang phục Goku
-- Cổ áo võ phục chữ V có hai ve áo cam bắt chéo trên áo lót xanh.
-- Tay áo lót xanh ngắn ôm bắp tay (thay quả cầu vai).
-- Dây buộc đỏ sẫm ở cổ giày như trong anime.
+Goku's outfit
+- V-neck gi collar with two orange lapels crossing over the blue undershirt.
+- Short blue undershirt sleeves hugging the upper arms (replacing the shoulder spheres).
+- Dark red laces at the boot cuffs as in the anime.
 
-Cảnh (thêm ảnh vẽ tay từ Codex)
-- Cột đá dùng texture đá có vân trầm tích (chiếu hộp), mặt trên cột phủ cỏ vẽ tay.
-- Tán cây Ajisa phủ lá vẽ tay; đá vụn bay lên và đá cuội dùng texture đá.
+Scene (more hand-painted images from Codex)
+- Rock pillars use a stone texture with sedimentary strata (box projection), pillar tops covered in hand-painted grass.
+- Ajisa tree canopies covered in hand-painted leaves; flying rock debris and pebbles use the stone texture.
 
-Nhân vật
-- Tóc Goku (cả đen lẫn SSJ) phủ kín gáy và phía trên tai, thêm chóp tóc sau gáy chĩa xuống (v3 nhìn từ sau còn lộ da đầu).
-- SSJ có lông mày giận vàng sẫm lộ dưới mái.
-- Frieza có ngón trỏ duỗi ở tay phải (điểm phát Death Beam dời ra đầu ngón) và lỗ tai hai bên.
+Characters
+- Goku's hair (both black and SSJ) fully covers the nape and the area above the ears, plus spikes at the back pointing down (in v3 the scalp showed from behind).
+- SSJ gets dark yellow angry eyebrows showing below the bangs.
+- Frieza has an extended index finger on his right hand (the Death Beam origin moved to the fingertip) and ear holes on both sides.
 
-Hiệu ứng
-- Ba vụ nổ ki blast lúc truy đuổi dời sát bên đường bay của Goku để lọt vào khung máy nhìn lùi (v2/v3 nổ ngoài khung).
-- Combo cận chiến dựng lại (shot 7b): Frieza lao tới đấm trúng thế đỡ của Goku (nhịp rung 719), tung cú đá
-  quét (Goku bật lên né), Goku phản đòn đấm vào thế chéo tay của Frieza (nhịp rung 747) làm Frieza bật lùi rồi
-  bay đi. v1–v3 hai bên đứng cách xa, múa tay không chạm nhau.
-- Vết nứt quanh Goku lúc gồng khí thành khe năng lượng màu cam (có lớp energy nên app vẽ thêm quầng sáng), thay cho vạch đen.
-- Đòn chạm trong combo có giật zoom nhẹ, cú phản đòn có impact frame.
-- Tóc đen rung mạnh dần và dựng nhẹ lên trong lúc gồng khí (trước khi biến hình).
+Effects
+- The three ki blast explosions during the chase moved right next to Goku's flight path so they land inside the backward-looking camera frame (in v2/v3 they exploded off-frame).
+- Melee combo rebuilt (shot 7b): Frieza charges in and punches into Goku's guard (shake beat 719), throws
+  a sweeping kick (Goku hops up to dodge), Goku counters with a punch into Frieza's crossed-arm guard (shake beat 747), knocking Frieza back before he
+  flies off. In v1–v3 the two stood far apart, swinging their arms without touching.
+- The cracks around Goku while powering up become orange energy fissures (on the energy layer, so the app adds a glow), replacing the black lines.
+- Combo hits get a slight zoom jolt, the counter gets an impact frame.
+- Black hair shakes harder and lifts slightly while powering up (before the Super Saiyan transformation).
 
 App
-- Chữ "SUPER SAIYAN" cuối phim thu lại vừa màn hình (v1–v3 bị cắt hai đầu).
-- Màn "Giữ để gồng Ki" có poster (khung Goku anh hùng cuối phim của chính bản này) và logo SAIYAN AWAKENING,
-  poster mờ dần khi phim chạy (v1–v3 màn này đen trơn).
+- The "SUPER SAIYAN" text at the end now fits the screen (cut off on both sides in v1–v3).
+- The "Hold to charge Ki" screen has a poster (this version's own heroic Goku frame from the end of the film) and the SAIYAN AWAKENING logo;
+  the poster fades out as the film plays (in v1–v3 this screen was plain black).

@@ -1,27 +1,27 @@
-# v27: chi tiết tiếp (làm đêm)
+# v27: more details (overnight session)
 
-- Gió giông: cả bãi cỏ ngả theo một hướng và dập dềnh theo từng cơn giật (shape key `storm`, cộng với gió khí
-  `ki_wind`), mạnh lúc giông đầu phim, dịu sau biến hình, gần lặng khi đánh nhau trên không.
-- Tiếng gió mở màn lên xuống theo đúng cơn giật làm cỏ dập dềnh (cùng công thức với shape key `storm`).
-- Sấm theo từng tia sét app vẽ: `synth_audio.py` dựng lại lịch tia sét giống hệt app (mỗi 0.32 s, seed theo cut, cùng
-  hàm hash) → ~1/3 số tia có tiếng rền xa vọng lại sau 0.4–1.1 s (sét ở xa), nhỏ hơn tiếng sấm chính (10 tiếng).
-- Đuôi đai vải của Goku thành con lắc mềm (`secondary.py: belt_tails`): rủ theo trọng lực thật (Goku nằm ngang bay đi thì
-  đuôi đai rủ xuống đất chứ không chĩa ngang như que), bị gió kéo ngược hướng bay, văng tới khi dừng gấp; 2 đuôi lệch
-  nhau 1 frame. Gốc xoay dời về điểm buộc ở nút thắt.
-- Vòng sóng bọt dưới chân lúc gồng kame hết giống ống trắng vẽ bút dạ: mảnh hơn (0.06 → 0.035), vật liệu mới
-  `kame_ripple` vỡ bọt theo nhiễu, và khi vòng loang ra thì ngưỡng nhiễu tăng theo alpha màu object (key 1 → 0) nên
-  bọt tan dần thành vụn rồi mất. Sóng phản lực lúc bắn và sóng lớn dưới vụ nổ dùng cùng kiểu tan.
-- Giọt nước hất lên nhỏ lại (0.024–0.05 → 0.016–0.034) và kéo dài theo vận tốc ít hơn (×34 → ×26): hết như quả trứng.
-- App: không khí nóng rung quanh mọi vật phát sáng dựng trong Blender (cầu khí, tia Kamehameha, vụ nổ) — shader
-  composite mục 2c lấy 4 mẫu lớp energy lệch quanh điểm, gần nguồn sáng thì lắc điểm lấy mẫu bằng nhiễu trôi lên
-  (khí nóng bốc), không lắc Goku. Trước chỉ có haze quanh aura của Goku.
-- Mặt Goku tóc đen hết mảng loang ngang má: đèn key cao nên nửa mặt chibi dưới mắt rơi vào vùng tối (ngưỡng 0.1) + tông
-  thứ 3 (mặt úp xuống) → cả nửa dưới mặt sẫm hơn thành mảng. `goku_skin_face`: bỏ tông thứ 3, ngưỡng tối 0.1 → 0.025,
-  viền sáng 0.4 → 0.12 (quay từ dưới lên viền sáng phủ cả quai hàm + cổ thành mảng nhạt).
-- Nước bị vụ nổ kame hất tung rơi trở lại: 36 giọt lớn văng ra từ thành vương miện nước (cao 1.2–3.6 m) theo đường đạn
-  với g thật, kéo dài theo vận tốc, rơi xuống biển (trước vương miện chỉ co lại, nước "biến mất" trên không).
-- App: Death Beam sượt qua rọi ánh hồng lên người Goku (má, tóc sát tia), mạnh ở sát tia, tắt dần ra ~120 px.
-- Frieza hết đường chấm trắng dọc mép vòm đầu: mặt trong vòm (1.035 r) gần trùng vỏ viền của đầu (r + 0.007) → nhìn từ
-  xa z-fight thành đường chấm. Vòm nới ra `FR_DOME_RD = 1.048` (gân giận dán trên vòm theo cùng hằng số).
-- Tiếng tõm của từng giọt nước rơi lại xuống biển: `kamehameha.py` đặt marker `sfx:plop` đúng frame giọt chạm mặt biển
-  (34 giọt trước khi cắt cảnh), `synth_audio.py` phát tiếng bọt "bloop" ngắn + xèo nhỏ, mỗi giọt một cao độ, panning ngẫu nhiên.
+- Storm wind: the whole grass field leans one way and sways with each gust (shape key `storm`, added to the Ki wind
+  `ki_wind`), strong during the storm at the start of the film, calmer after the transformation, nearly still during the aerial fight.
+- The opening wind sound rises and falls with the exact gusts that make the grass sway (same formula as the `storm` shape key).
+- Thunder matched to every lightning bolt the app draws: `synth_audio.py` rebuilds the lightning schedule exactly like the app (every 0.32 s, seeded per cut, same
+  hash function) → ~1/3 of the bolts get a distant rumble echoing back after 0.4–1.1 s (far-off lightning), quieter than the main thunder claps (10 of them).
+- Goku's sash tails become soft pendulums (`secondary.py: belt_tails`): they hang with real gravity (when Goku flies horizontally the
+  sash tails hang toward the ground instead of sticking out sideways like sticks), get pulled back against the flight direction by the wind, swing forward on sudden stops; the 2 tails are offset
+  by 1 frame. The pivot moved to the tie point at the knot.
+- The foam ring under his feet while charging the Kamehameha no longer looks like a white tube drawn with a marker: thinner (0.06 → 0.035), new material
+  `kame_ripple` breaks up the foam with noise, and as the ring spreads the noise threshold rises with the object color alpha (key 1 → 0), so
+  the foam gradually dissolves into fragments and disappears. The recoil wave when firing and the big wave under the explosion use the same dissolve.
+- Thrown-up water droplets are smaller (0.024–0.05 → 0.016–0.034) and stretch less with velocity (×34 → ×26): no longer egg-shaped.
+- App: hot air shimmers around every glowing object built in Blender (energy ball, Kamehameha beam, explosions); composite shader
+  section 2c takes 4 offset energy-layer samples around the pixel, and near a light source it jitters the sample point with upward-drifting noise
+  (rising hot air), without shaking Goku. Before, the haze was only around Goku's aura.
+- Black-haired Goku's face no longer has a blotch across the cheeks: the high key light put the lower half of the chibi face below the eyes into the shadow zone (threshold 0.1) + the third
+  tone (downward-facing surfaces) → the whole lower half of the face became a darker patch. `goku_skin_face`: removed the third tone, shadow threshold 0.1 → 0.025,
+  rim light 0.4 → 0.12 (shot from below, the rim light covered the whole jaw + neck as a pale patch).
+- Water thrown up by the Kamehameha explosion falls back down: 36 large droplets fly out from the wall of the water crown (1.2–3.6 m high) on ballistic paths
+  with real g, stretched by velocity, falling into the sea (before, the crown just shrank and the water "vanished" in midair).
+- App: the Death Beam grazing past casts a pink glow on Goku (cheeks, hair near the beam), strong right next to the beam, fading out over ~120 px.
+- Frieza no longer has a dotted white line along the edge of his head dome: the inside of the dome (1.035 r) nearly coincided with the head's outline shell (r + 0.007) → from
+  a distance it z-fought into a dotted line. The dome expanded to `FR_DOME_RD = 1.048` (the anger vein on the dome uses the same constant).
+- A plop sound for every droplet falling back into the sea: `kamehameha.py` places a `sfx:plop` marker on the exact frame a droplet hits the sea surface
+  (34 droplets before the cut), `synth_audio.py` plays a short "bloop" + a small fizz, each droplet at its own pitch, with random panning.

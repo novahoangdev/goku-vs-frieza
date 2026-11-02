@@ -1,8 +1,8 @@
-# v12: color grade phim + hạt phim (chỉ app, không render lại Blender)
+# v12: film color grade + film grain (app only, no Blender re-render)
 
 App (`app/src/cinematic/shaders/overlay.ts`)
-- Vignette đổi từ đen tuyền sang xanh navy sâu: góc màn hình lạnh lại trong khi aura, beam, flash vẫn ấm; nhìn
-  như color grade anime thay vì lớp tối đè lên hình.
-- Hạt phim mịn (2 px, đổi 24 lần/giây) phủ cả khung, đậm hơn ở vùng tối rìa màn hình; hash theo toạ độ đã mod
-  nên không lộ dải/moiré khi toạ độ lớn.
-- Bản quay giữ nguyên render Blender của v11, nên so sánh v11 ↔ v12 chỉ thấy khác ở lớp phủ màn hình.
+- Vignette changed from pure black to deep navy: the screen corners cool down while the aura, beams and flashes stay warm; it looks
+  like an anime color grade instead of a dark layer over the picture.
+- Fine film grain (2 px, changing 24 times per second) over the whole frame, stronger in the dark areas at the screen edges; the hash uses modded coordinates
+  so no banding/moire shows at large coordinates.
+- The recording keeps v11's Blender render, so comparing v11 ↔ v12 only shows differences in the screen overlay.

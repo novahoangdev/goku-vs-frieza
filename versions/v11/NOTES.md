@@ -1,24 +1,24 @@
-# v11: chăm chút chi tiết (4 agent làm song song)
+# v11: detail polish (4 workstreams in parallel)
 
-Mỗi agent làm một file riêng trong `blender/scripts/extras/` (build_scene chạy chúng sau cùng), tự dựng thử ra file
-tạm, soi ảnh trước/sau rồi mới chép vào, nên không đụng nhau và không làm hỏng bản đang render.
+Each workstream had its own file in `blender/scripts/extras/` (build_scene runs them last), built a test into a temporary
+file, compared before/after images and only then copied it in, so they did not collide or break the version being rendered.
 
 Goku (`extras/goku_details.py`)
-- Vòng tròn chữ 悟 lớn sau lưng võ phục (rõ nhất ở các shot qua vai Goku), nút thắt đai lưng phía trước.
-- Viền gờ trên dưới băng cổ tay, viền gấu tay áo, đường may dọc mũi giày.
-- Nếp gấp vải bằng nét mực thon hai đầu ở lưng, ngực, đùi.
-- Sợi tóc sáng / tối trên tóc SSJ và tóc đen (ẩn hiện theo dạng, ẩn lúc dịch chuyển tức thời).
+- Large 悟 kanji circle on the back of the gi (most visible in the over-the-shoulder shots on Goku), sash knot at the front.
+- Top and bottom ridges on the wristbands, sleeve hems, a seam along the boot toes.
+- Cloth folds as ink strokes tapered at both ends on the back, chest and thighs.
+- Light / dark hair strands on the SSJ and black hair (shown/hidden per form, hidden during teleports).
 
 Frieza (`extras/frieza_details.py`)
-- Vệt bóng lưỡi liềm + chấm trên vòm đầu, giáp vai, giáp tay, giáp ống chân; viền tím nhạt chân giáp vai.
-- Ngọc ngực tím hồng bóng hơn có điểm sáng; nét cơ ngực + múi bụng mờ; hai ngón chân tròn mỗi bàn chân.
+- Crescent sheen streaks + dots on the head dome, shoulder pads, arm guards and shin guards; light purple rim at the base of the shoulder pads.
+- Glossier purple-pink chest gem with a highlight; faint pec lines + abs; two round toes on each foot.
 
-Cảnh Namek (`extras/env_details.py`)
-- Nhà vòm: viền cửa sổ tròn, khung cửa chữ U, đế, chóp có cổ + bầu tròn + ăng-ten; thêm nhà vòm phụ và 4 nhà ở xa.
-- Cây Ajisa tán nhiều tầng bồng hơn; cụm đá + bụi cỏ quanh chỗ nhân vật đứng (4–16 m), mesa và cột đá mảnh ở xa.
-- Kiểm tra camera không xuyên vật mới ở cả 1200 frame.
+Namek scene (`extras/env_details.py`)
+- Dome houses: round window frames, U-shaped door frames, bases, spires with a neck + round bulb + antenna; added a secondary dome house and 4 distant houses.
+- Ajisa trees with fuller multi-tier canopies; rock clusters + grass tufts around where the characters stand (4–16 m), mesas and thin rock pillars in the distance.
+- Checked that the camera passes through none of the new objects across all 1200 frames.
 
-Hiệu ứng màn hình (`app/src/cinematic/shaders/overlay.ts`)
-- Speed lines kiểu manga: vạch hình nêm nhọn ở trong, phình ra mép, dày mỏng ngẫu nhiên, viền tách màu nhẹ; chấm
-  halftone mực ở rìa màn hình khi đang tăng tốc.
-- Khung "focus burst" lúc flash mạnh (biến hình, đòn kết liễu): tia mực toả ra trên nền trắng + vòng nét cọ nở dần.
+Screen effects (`app/src/cinematic/shaders/overlay.ts`)
+- Manga-style speed lines: wedge-shaped strokes, sharp on the inside and swelling toward the edge, random thickness, slight color-split edges; ink
+  halftone dots at the screen edges while accelerating.
+- "Focus burst" frame on strong flashes (Super Saiyan transformation, finishing blow): ink rays radiating on a white background + a brush-stroke ring that expands.

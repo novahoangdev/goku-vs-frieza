@@ -1,9 +1,9 @@
-# v9: Goku chân chibi
+# v9: Goku's chibi legs
 
 Model
-- Chân Goku ngắn và mập hơn kiểu chibi: đùi 0.31 → 0.25 m, ống quyển + giày ngắn lại, giày giữ cỡ to tròn; cả người
-  thấp đi ~9%, đầu to nổi bật hơn. Root ở đòn kết liễu được nâng lên đúng phần chân hụt nên nắm đấm vẫn trúng mặt
-  Frieza; các đòn chạm trong combo (719, 747) vẫn khớp.
-- Frieza có ngón cái ở hai bàn tay (trước là quả cầu trắng trơn như ma-nơ-canh).
-- Ngón trỏ duỗi của Frieza chỉ hiện quanh các phát Death Beam / ki blast; lúc khác nắm tay tròn. Soi cận thấy lúc
-  Frieza đưa hai tay lên ngực (~frame 470) ngón trỏ giơ thẳng lên, nhìn như cử chỉ khiếm nhã.
+- Goku's legs are shorter and chubbier, chibi style: thigh 0.31 → 0.25 m, shins + boots shortened, boots keep their big round size; the whole body
+  is ~9% shorter, so the big head stands out more. The root at the finishing blow is raised by exactly the lost leg length so the fist still lands on
+  Frieza's face; the combo hits (719, 747) still line up.
+- Frieza has thumbs on both hands (before they were plain white balls like a mannequin's).
+- Frieza's extended index finger only shows around the Death Beam / ki blast shots; the rest of the time it is a round fist. A close look showed that when
+  Frieza raises both hands to his chest (~frame 470) the index finger pointed straight up, looking like a rude gesture.

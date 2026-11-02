@@ -1,17 +1,17 @@
-# v8: khe nứt đất + bờ đá quanh đảo
+# v8: ground cracks + rocky shore around the island
 
-Cảnh
-- Khe nứt lúc Goku gồng khí là đường zigzag thon dần về đầu mút, mép nâu tối + lõi vàng rực (có lớp energy nên
-  app thêm quầng sáng). v1–v7 là các dải cam thẳng bản rộng đều nhau, nhìn như băng keo dán trên cỏ.
-- Bờ đá gồ ghề chạy quanh mép đảo, từ mặt biển lên sát mép cỏ. Trước đó mép đảo là mặt hông của khối trụ cỏ,
-  ảnh cỏ bị kéo thành sọc dọc (lộ rõ cuối đoạn truy đuổi và lúc Goku dịch chuyển ra sau Frieza).
-- Bọt sóng trắng loang lổ quanh chân vách đá trên mặt biển.
+Scene
+- The cracks while Goku powers up are zigzag lines tapering toward the tips, dark brown edges + a blazing yellow core (on the energy layer, so the
+  app adds a glow). In v1–v7 they were straight orange strips of uniform width, looking like tape stuck on the grass.
+- A rugged rocky shore runs around the island's edge, from the sea surface up to the edge of the grass. Before this the island's edge was the side of the grass cylinder,
+  with the grass image stretched into vertical streaks (clearly visible at the end of the chase and when Goku teleports behind Frieza).
+- Patchy white sea foam around the base of the cliffs on the sea surface.
 
 Model
-- Mặt Goku tóc đen gọn hơn: hai chùm tóc mai ngang lông mày (trước mọc từ trong trán ra, nhìn nghiêng 3/4 thành
-  một mảng đen đè lên lông mày) dời ra sau thái dương; hai chùm mái bên ngắn lại, chĩa xéo ra ngoài.
-- Viên ngọc tím trên ngực Frieza hết sọc lấm tấm (bóng tự đổ lên chính nó, rõ khi cận cảnh Frieza hoảng hốt).
+- Black-haired Goku's face is tidier: the two sideburn clusters at eyebrow level (previously growing out of the forehead, seen in 3/4 view as
+  a black patch over the eyebrows) moved back behind the temples; the two side bang clusters are shorter and point diagonally outward.
+- The purple gem on Frieza's chest no longer has speckled streaks (self-shadowing, obvious in the close-up of the panicked Frieza).
 
 App
-- Ki blast của Frieza thành sao chổi kiểu anime: đầu tròn rực sáng phập phồng, đuôi thon dài theo quãng bay, 3 dải
-  màu cứng (viền tím hồng → hồng → lõi trắng), tia điện zigzag lách tách quanh đầu (trước là một đốm hồng mờ).
+- Frieza's ki blasts become anime-style comets: a bright, pulsing round head, a long tapered tail along the flight path, 3 hard
+  color bands (purple-pink rim → pink → white core), zigzag sparks crackling around the head (previously a blurry pink blob).

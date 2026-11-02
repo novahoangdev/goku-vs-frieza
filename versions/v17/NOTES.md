@@ -1,30 +1,30 @@
-# v17: tập trung vào hai nhân vật (dáng Frieza, đầu Goku, shading + nét vẽ)
+# v17: focus on the two characters (Frieza's build, Goku's head, shading + lineart)
 
 Frieza (`build_frieza`, `fr_head_surf`, `fr_body`, `extras/frieza_*.py`)
-- Thân dựng lại bằng khối tiện trơn (trước ghép cầu + viên nang nên thành dáng quả lê / chai bowling): ngực nở có
-  cơ ngực, eo thon, hông gọn, đùi mảnh thuôn vào giáp ống chân tím có bắp chân, gối nhỏ, bàn chân nhỏ hai ngón.
-- Đầu dạng cuối: sọ tròn dưới vòm tím, nửa dưới mặt thu hẹp về cằm nhỏ mềm, gò má rất nhẹ; vòm, mắt, vạch má,
-  miệng, tai, giọt mồ hôi, dấu gân giận đều bám theo mặt đầu mới (không nổi, không chớp nháy).
-- Cổ thuôn loe ở gốc, nét xương quai xanh; múi bụng/cơ ngực dời theo ngực mới; ngọc ngực nhỏ lại.
-- Đuôi gốc dày vuốt nhọn, uốn chữ S (rủ ra sau, quét ra ngoài, chóp hất lên) cộng thêm lên chuyển động vẫy cũ.
+- Body rebuilt from smooth lathed shapes (before, assembled from spheres + capsules, giving a pear / bowling-pin shape): broad chest with
+  pecs, slim waist, neat hips, slender thighs tapering into purple shin guards with calves, small knees, small two-toed feet.
+- Final-form head: round skull under the purple dome, the lower half of the face narrowing to a small soft chin, very subtle cheekbones; the dome, eyes, cheek marks,
+  mouth, ears, sweat drop and anger vein all follow the new head surface (no floating, no flickering).
+- Neck tapering and flaring at the base, collarbone lines; abs/pecs moved to follow the new chest; smaller chest gem.
+- Thick tail base tapering to a point, with an S curve (hanging back, sweeping outward, tip flicking up) added on top of the existing swaying motion.
 
 Goku (`build_goku`, `goku_face_shape`, `extras/goku_outfit.py`, `face_textures.py`)
-- Sửa lỗi của v16: cổ áo lót xanh trồi lên che cằm và miệng như khẩu trang ở các cảnh cận. Vai dốc xuống, cổ áo
-  xanh hạ về chân cổ, đỉnh V áo lót hạ thấp; có một đoạn cổ ngắn giữa cằm và cổ áo, với vệt bóng cel dưới cằm.
-- Đầu không còn là quả cầu tròn: má đầy ngay dưới mắt thuôn về cằm nhỏ mềm hơi nhô, rõ ở góc 3/4 và nhìn từ dưới.
-  Tóc và nét chân tóc uốn theo, mọi decal mặt (mắt, mày, má hồng, 3 kiểu miệng, mũi) chiếu lại lên đầu mới.
-- Mũi anime nhỏ: nét bóng xiên + bóng mờ dưới + gờ da rất nhỏ. Miệng cười / nhếch to hơn ~1.2 lần, nét giữa dày hơn
-  có bóng môi dưới; miệng há khi thét to hơn, viền dày hơn.
+- Fixed a v16 bug: the blue undershirt collar rose up and covered the chin and mouth like a face mask in close-ups. Sloping shoulders, the blue
+  collar lowered to the base of the neck, the point of the undershirt V lowered; there is now a short neck between the chin and the collar, with a cel shadow under the chin.
+- The head is no longer a round ball: full cheeks right under the eyes taper to a small, soft, slightly protruding chin, clear in 3/4 view and from below.
+  The hair and hairline follow it, and every face decal (eyes, brows, blush, 3 mouth types, nose) is re-projected onto the new head.
+- Small anime nose: a slanted shading stroke + soft shadow underneath + a very small skin ridge. Smiling / smirking mouth ~1.2× larger, thicker center line
+  with a lower-lip shadow; the screaming open mouth is bigger with a thicker outline.
 
-Shading + nét vẽ cả hai nhân vật (`char_key_light`, `char_shading`, `CHAR_SHADE`)
-- Sửa lỗi có từ v1: vỏ viền (inverted hull) bao quanh nhân vật đổ bóng lên chính nhân vật, nên đèn key không bao
-  giờ chiếu tới; Frieza chỉ một màu tím nhạt đều, Goku phẳng lì trong tông tối. Giờ có mảng sáng / tối thật: đường
-  ranh chéo sắc trên mặt và thân Frieza, áo cam có mặt sáng mặt tối.
-- Đèn key chỉ bị chính nhân vật che (cây, mây, cột đá không làm tối nhân vật nữa), chiếu từ trên-trái chếch về
-  phía camera nên mặt luôn sáng, bóng nằm phía xa.
-- Tông thứ 3 sẫm hơn trong bóng ở chỗ úp xuống và khe sâu (dưới cằm, nách, dưới tóc, dưới đai) theo màu từng chất
-  liệu (nâu cam trên áo, tím sẫm trên giáp...).
-- Viền sáng mảnh ở mép tối của bóng dáng: Goku tóc đen viền lạnh, chuyển vàng ấm khi SSJ; Frieza viền tím nhạt.
-- Đốm bóng sắc trên tóc vàng, tóc đen, giày (toon cũ có `spec` nhưng sai dấu trục Z nên chưa bao giờ hiện).
-- Dải sáng nhạt chỉ hiện khi ánh khí hắt mạnh nên tóc vàng và áo không bị bạc màu. Tóc đen chỉnh lại gần đen (bớt
-  ánh xanh), bóng trên mặt Goku dịu hơn để nhìn từ dưới lên bóng cằm không thành mảng loang.
+Shading + lineart for both characters (`char_key_light`, `char_shading`, `CHAR_SHADE`)
+- Fixed a bug present since v1: the outline shell (inverted hull) around the characters cast shadows onto the characters themselves, so the key light never
+  reached them; Frieza was one flat light purple, Goku was flat in the dark tone. Now there are real light / dark areas: a sharp diagonal
+  terminator on Frieza's face and body, the orange gi has a lit side and a shadow side.
+- The key light is only blocked by the character itself (trees, clouds and rock pillars no longer darken the characters), shining from the top-left angled toward
+  the camera so the face is always lit and the shadow falls on the far side.
+- A darker third tone inside the shadow on downward-facing areas and deep creases (under the chin, armpits, under the hair, under the sash), per material
+  color (orange-brown on the gi, dark purple on the armor...).
+- A thin rim light on the shadow edge of the silhouette: cool rim for black-haired Goku, turning warm yellow in SSJ; light purple rim for Frieza.
+- Sharp specular highlights on the golden hair, black hair and boots (the old toon shader had `spec` but with the wrong Z-axis sign, so it never showed).
+- The faint light band only shows when the Ki glow is strong, so the golden hair and gi don't get washed out. Black hair adjusted to near black (less
+  blue sheen), softer shading on Goku's face so the chin shadow doesn't become a blotch when seen from below.

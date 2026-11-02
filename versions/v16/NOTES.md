@@ -1,20 +1,20 @@
-# v16: Goku theo mẫu Dragon Ball FighterZ (tóc + trang phục)
+# v16: Goku based on the Dragon Ball FighterZ reference (hair + outfit)
 
-Tóc Goku (`goku_hair_forms`, `goku_blade`, `extras/goku_details.py`)
-- SSJ dựng lại theo mẫu FighterZ: khối lửa ~21 lọn tóc bản rộng dẹt (gốc to phồng, cong, vuốt nhọn), mỗi lọn có
-  sống gờ sắc ở giữa nên một mặt sáng một mặt tối; lọn trên vuốt lên và hắt ra sau như lửa trong gió (v1–v15 là
-  vòng gai nón mảnh chĩa tứ phía như con nhím biển). Mái đặc trưng to hơn rủ giữa hai lông mày, thêm lọn ngắn,
-  hai lọn cong xuống thái dương, tóc mai trước tai. Màu vàng sáng / cam bóng / highlight vàng nhạt, hai tông rõ.
-- Tóc đen cùng cách dựng: 19 lọn bản rộng xoè ngang và lên, mái 5 lọn kinh điển.
-- Gáy không còn hói: chân tóc phía sau kéo xuống tận cổ + 4 lọn rủ che gáy (lộ rõ ở frame 60 khi Goku ngửa đầu nhìn
-  Frieza và các shot qua vai).
-- Vệt highlight sắc gần gốc lọn (11 trên SSJ, 4 ánh xanh trên tóc đen), gắn vào tóc nên rung theo tóc.
+Goku's hair (`goku_hair_forms`, `goku_blade`, `extras/goku_details.py`)
+- SSJ rebuilt after the FighterZ reference: a flame mass of ~21 wide, flat locks (thick puffy base, curved, tapering to a point), each lock with
+  a sharp ridge down the middle so one side is lit and the other dark; the top locks sweep up and flick back like flames in the wind (v1–v15 had a
+  ring of thin cone spikes pointing in every direction like a sea urchin). Bigger signature bang hanging between the eyebrows, plus a short lock,
+  two locks curving down to the temples, sideburns in front of the ears. Bright yellow / glossy orange / pale yellow highlight, two clear tones.
+- Black hair built the same way: 19 wide locks fanning sideways and up, the classic 5-lock bangs.
+- The nape is no longer bald: the hairline at the back runs down to the neck + 4 hanging locks cover the nape (clearly visible at frame 60 when Goku tilts his head back to look at
+  Frieza and in the over-the-shoulder shots).
+- Sharp highlight streaks near the lock roots (11 on SSJ, 4 blue sheens on the black hair), attached to the hair so they shake with it.
 
-Trang phục Goku (`build_goku`, `extras/goku_outfit.py`)
-- Áo võ: cổ chữ V sâu rộng lộ áo lót xanh (áo lót ôm theo ngực, có cổ tròn xanh và bóng đổ cứng một bên), nẹp áo
-  cam có viền mực, đường vạt áo chồng từ đỉnh V xuống đai, nếp gấp ở ngực / nách / bụng, vai áo cam để đọc ra áo
-  sát nách mặc ngoài tay áo xanh. Vòng 悟 dời xuống thấp và ra cạnh cho nẹp áo không che, nằm sát thân áo.
-- Đai: dải vải xanh bản rộng phẳng có nếp nhăn, hai đuôi đai buông dưới nút thắt.
-- Quần: ống phồng to từ dưới gối, bó túm trên cổ giày có nếp gấp vòng quanh (trước là hai ống trụ thẳng).
-- Giày: xanh navy, hai sọc đỏ dọc mỗi chiếc + sọc đỏ mũi giày, hai vòng dây thừng vàng ở cổ chân có nút và hai
-  đầu dây buông (trước là giày xanh trơn có viền đỏ).
+Goku's outfit (`build_goku`, `extras/goku_outfit.py`)
+- Gi top: deep, wide V-neck showing the blue undershirt (the undershirt hugs the chest, with a round blue collar and a hard cast shadow on one side), orange
+  lapel trim with ink outlines, the overlapping front panel line from the point of the V down to the sash, folds at the chest / armpits / belly, orange shoulders so it reads as a
+  sleeveless top worn over the blue sleeves. The 悟 circle moved lower and to the side so the trim doesn't cover it, sitting flush on the gi.
+- Sash: a wide, flat blue cloth band with wrinkles, two sash tails hanging below the knot.
+- Pants: legs balloon out from below the knee, gathered above the boot cuffs with folds wrapping around (before, two straight cylinders).
+- Boots: navy blue, two vertical red stripes on each + a red stripe on the toe, two yellow rope loops at the ankle with a knot and two
+  hanging ends (before, plain blue boots with a red trim).

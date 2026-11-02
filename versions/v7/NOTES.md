@@ -1,10 +1,10 @@
-# v7: nhân vật đứng vững trên mặt đất + mái tóc Goku
+# v7: characters planted on the ground + Goku's bangs
 
-Cảnh
-- Bóng tròn kiểu anime dưới chân Goku và Frieza (elip đặc, chỉ mềm ở mép): bám theo vị trí nhân vật, nằm trên mặt
-  đất (ngoài đảo thì nằm trên mặt biển), nhỏ dần rồi tắt hẳn khi bay cao hơn ~1.6 m. Trước đó nhân vật đứng trên
-  cỏ như dán lên ảnh, không có điểm tiếp đất. Bóng tắt theo lúc Goku dịch chuyển tức thời và lúc Frieza bị hạ.
+Scene
+- Anime-style round shadows under Goku's and Frieza's feet (solid ellipses, soft only at the edge): they follow the characters' positions, lie on the
+  ground (off the island they lie on the sea surface), shrink and then disappear completely when flying higher than ~1.6 m. Before this the characters stood on the
+  grass like they were pasted onto a picture, with no contact point. The shadows turn off when Goku teleports and when Frieza is defeated.
 
 Model
-- Goku tóc đen có lại mái trước đặc trưng: 3 chùm rủ xuống trán (giữa dài nhất), chĩa ra khỏi mặt một chút nên
-  không chìm vào da trán như bản thử ở v5; v5–v6 trán trống trơn nhìn như đầu hói.
+- Black-haired Goku gets his signature front bangs back: 3 clusters falling over the forehead (the middle one longest), sticking out from the face a little so they
+  don't sink into the forehead skin like the v5 attempt; in v5–v6 the forehead was bare and looked bald.

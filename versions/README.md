@@ -1,43 +1,43 @@
-# Các bản nâng cấp
+# Versions
 
-Mỗi thư mục `vN/` là một bản để so sánh quá trình thay đổi:
+Each `vN/` folder is one version, kept so the changes can be compared over time:
 
-- `saiyan-awakening-demo.mp4`: clip demo 4:3 đăng X (mockup iPhone, 27s, có tiếng)
-- `screen.mp4`: bản quay màn hình simulator gốc (app bản Release)
-- `cinematic-packed.mp4`: video đóng gói trong app (beauty + matte + energy)
-- `stills/`: vài khung beauty render từ Blender (chưa có hiệu ứng Skia)
-- `NOTES.md`: bản đó đổi gì
+- `saiyan-awakening-demo.mp4`: 4:3 demo clip posted on X (iPhone mockup, 27 s, with sound)
+- `screen.mp4`: the original simulator screen recording (Release build of the app)
+- `cinematic-packed.mp4`: the packed video bundled in the app (beauty + matte + energy)
+- `stills/`: a few beauty frames rendered from Blender (no Skia effects yet)
+- `NOTES.md`: what changed in that version
 
-| Bản | Điểm chính |
+| Version | Highlights |
 |-----|------------|
-| v1 | Nhân vật chibi đầu tiên: mắt/miệng dựng bằng khối dẹt, tóc chóp cong, cảnh Namek cơ bản |
-| v2 | Mặt anime vẽ bằng texture, đầu chibi, viền sáng + đốm bóng, vòm đầu Frieza bóng, dáng người thon, cảnh Namek đầy đủ, sửa góc máy; aura lửa + Death Beam mới |
-| v3 | Bầu trời / mặt đất / biển vẽ tay (Codex), chớp mắt, mắt "> <" lúc hét, Frieza hoảng hốt, tóc rung, shot cuối anh hùng |
-| v4 | Đèn key nhân vật theo camera (light linking), cổ áo chữ V + tay áo + dây giày đỏ, cột đá / tán cây vẽ tay, Frieza có ngón trỏ + lỗ tai, tóc phủ kín gáy, lông mày SSJ |
-| v5 | Đòn kết liễu trúng mặt Frieza, đuôi Frieza liền mạch, nắm tay có đốt, nét mặt chibi (gân giận, mồ hôi, cười nhếch), icon + poster mở app, vụ nổ kiểu anime |
-| v6 | Ngôi sao va chạm ở mỗi đòn chạm, vệt khí khi bay, trời vẽ tay trôi chậm, nét viền màu theo từng phần, hạt khí vàng quanh aura |
-| v7 | Bóng tròn dưới chân nhân vật, mái tóc trước của Goku tóc đen |
-| v8 | Khe nứt zigzag rực sáng, bờ đá + bọt sóng quanh đảo, gọn tóc mai Goku tóc đen, hết sọc trên ngọc ngực Frieza, ki blast sao chổi |
-| v9 | Goku chân chibi ngắn mập, Frieza có ngón cái, ngón trỏ chỉ duỗi lúc bắn |
-| v10 | Phối cảnh khí quyển (cảnh xa nhạt dần), sửa đoạn truy đuổi bay xuyên lõi cột đá, Death Beam kiểu anime |
-| v11 | 4 agent song song: chữ 悟 sau lưng + nếp vải + sợi tóc (Goku), vệt bóng giáp + múi bụng + ngón chân (Frieza), nhà vòm Namek chi tiết + cây bồng + cụm đá cỏ (cảnh) |
-| v12 | Color grade: vignette xanh navy + hạt phim mịn (chỉ lớp phủ app, render giữ nguyên v11) |
-| v13 | Heat haze (không khí rung quanh Goku khi aura cháy) + bloom mềm lớp energy (chỉ app) |
-| v14 | 3 agent: sửa shot camera chui dưới đất + cận mặt hét + đá vụn 3D; tóc Goku có chân tóc, lộ trán, có tai, bỏ "mõm" SSJ; Frieza vòm tím lớn, thân chibi chắc |
-| v15 | Frieza mắt sắc + vạch tím + môi tím + tay có ngón + chân ngắn; Goku nắm đấm thật + tóc thêm gai + sửa mất miệng 0–292; app: tia lửa va chạm, aura lưỡi lửa, khói nổ cel |
-| v16 | Goku theo mẫu FighterZ: tóc SSJ khối lửa lọn bản rộng + mái đặc trưng, tóc đen cùng kiểu, hết hói gáy; cổ V sâu + áo lót xanh, đai bản rộng, quần phồng túm, giày navy sọc đỏ dây vàng |
-| v17 | Frieza thân thon (ngực, eo, đùi mảnh) + đầu có cằm; Goku có cổ, cằm, mũi, hết cổ áo che miệng; sửa lỗi viền tự đổ bóng làm nhân vật luôn tối → có sáng tối thật, tông thứ 3, viền sáng, đốm bóng |
-| v18 | Nét viền đổi độ dày theo camera + vuốt nhọn mũi tóc; tóc SSJ nhìn từ sau thành các hàng lọn lửa có bóng cam; tròng mắt anime mới + nhiều biểu cảm (Goku giận / nghiến răng / nhếch mép, Frieza tự mãn / gầm gừ / đau) |
-| v19 | Tóc Goku theo mẫu FighterZ: SSJ thành khối lửa vài lọn lớn dựng đứng, 2 lọn mái chữ S, sau gáy các hàng lọn hất lên, màu vàng nhạt; tóc đen có mái răng cưa kiểu Goku; lọn tóc 2 tông sáng-tối gọn; mắt đen + mày rậm cho Goku thường, nghiến răng lúc gồng Ki; Frieza chắc khoẻ hơn (cổ, ngực, tay chân) + giáp vai dạng vòm; tay Goku có cơ, bỏ núm vai áo, nút đai thật |
-| v20 | Gáy tóc SSJ thành vài lọn lửa lớn (hết hình quả thông từ sau), tóc lúc biến hình không còn trắng bệch, tóc mai rõ; tóc đen lệch hai bên như Goku thật, bỏ vòng cung xám trên mái, gáy ngắn lại; mắt Goku đen hẳn + mắt giận gắt lúc gồng Ki; quả cầu khí Death Beam có lõi trắng viền hồng |
-| v21 | Tóc SSJ không bị bloom tẩy trắng; Frieza: mặt sáng sạch, mắt to sắc, môi tím, đầu thuôn, trán gọn, dáng chữ V; Goku tóc đen gai tam giác tua tủa |
-| v22 | Tay chân liền mạch; phim chậm lại 20 s → 29 s (giãn theo từng shot); nhạc phim + tiếng động kiểu anime viết lại hoàn toàn, khớp từng nhịp hình |
-| v23 | Đoạn Kamehameha 5.5 s trước cảnh kết (tụ khí ở hông → "HA!" → tia xanh nuốt Frieza), nhạc + tiếng động riêng; hiệu ứng app nằm đúng lớp nhờ pass depth (tia Death Beam chui sau đầu Frieza, aura không đè giáp vai); aura toé theo hướng bay; chữ trong app sang tiếng Anh |
-| v24 | Tóc đen Goku dựng lại theo dáng DBZ: cụm chóp dài quét sang một bên, lọn hai bên dài chĩa ngang xếp tầng, mái dày rủ xuống trán (thay chùm gai nhím + vành mái úp) |
-| v25 | Vật lý: Kamehameha lướt sát mặt biển (sóng tròn + bọt nước rơi theo trọng lực khi tụ khí, vệt bọt dưới tia, vương miện nước + sóng lớn khi nổ, tiếng nước); đá vụn biến hình văng theo đường đạn, chạm đất bung bụi, nảy rồi nằm yên; tia bám tay + Goku bị phản lực đẩy lùi; ánh tia phản chiếu trên nước; khe nứt nguội dần thành khe tối; Frieza cổ thon, cằm rõ (hết dáng ki bowling) |
-| v26 | Quán tính: tóc + đuôi Frieza trễ lại rồi đung đưa theo gia tốc, đuôi bị gió kéo thẳng khi bay nhanh; cỏ rạp theo gió khí lúc gồng; Frieza có mũi; tia Kamehameha có vân khí chảy, cầu khí xanh đậm hơn, hơi nước bốc khi nổ; sét vẽ trong shader chỉ hiện ở trời (sau cột đá, người); vụ nổ bốc lên + rọi sáng ấm lên Goku; vật phát sáng rọi màu lên người; tiếng đá rơi |
-| v27 | Đai vải Goku rủ theo trọng lực + gió khi bay; cỏ dập dềnh theo cơn gió giông, tiếng gió lên xuống cùng nhịp; sấm rền xa theo đúng tia sét trên trời; bọt sóng kame vỡ vụn rồi tan, giọt nước nhỏ lại; không khí nóng rung quanh cầu khí / tia / vụ nổ |
-| v28 | Cây đung đưa theo gió giông + bị sóng xung kích biến hình quật ra rồi bật lại; vòng bụi toả ra từ chân Goku lúc nổ biến hình; tóc đen trung tính như ảnh mẫu; cận cảnh vụ nổ kame hết cháy trắng (vương miện nước màu nước biển, glow chừa khoảng sáng); vòng sóng xung kích mảnh vỡ dần; tia kame lõi trắng rộng hơn |
-| v29 | Lá cây bay trong gió giông, bị sóng xung kích biến hình hất văng; tóc Goku bị gió ép ngả ngược hướng bay; sét trên trời rọi viền sáng lên người Goku; giọt nước kame màu nước biển |
-| v30 | Death Beam trượt Goku trúng đất phía sau (loé, đất văng theo đường đạn, bụi, vết cháy sém, tiếng nổ); da Goku tóc đen hết mặt nạ trắng xám (chỉnh màu lạnh nhẹ trên người); cổ tông bóng như anime; đá bị khí nâng rung lắc; tiếng cỏ lá xào xạc theo cơn giật |
-| v31 | Chân Goku hết lún đất lúc gồng khí (đế giày chìm 8–11 cm dưới mặt cỏ suốt đoạn biến hình → nâng người đúng bằng độ lún) |
+| v1 | First chibi characters: eyes/mouth built from flat shapes, curved spiky hair, basic Namek scene |
+| v2 | Anime faces drawn as textures, chibi heads, rim light + specular highlights, glossy Frieza head dome, slimmer bodies, full Namek scene, camera angle fixes; new flame aura + Death Beam |
+| v3 | Hand-painted sky / ground / sea (Codex), blinking, "> <" eyes while screaming, panicked Frieza, hair shaking, heroic final shot |
+| v4 | Camera-relative key light on the characters (light linking), V-neck collar + sleeves + red shoelaces, hand-painted rock pillars / tree canopies, Frieza gets an index finger + ear holes, hair fully covers the nape, SSJ eyebrows |
+| v5 | Finishing blow lands on Frieza's face, seamless Frieza tail, fist with knuckles, chibi expressions (anger vein, sweat drop, smirk), app icon + launch poster, anime-style explosions |
+| v6 | Impact stars on every hit, energy trails while flying, slowly drifting hand-painted sky, per-part colored lineart, golden Ki particles around the aura |
+| v7 | Round contact shadows under the characters, front bangs for black-haired Goku |
+| v8 | Glowing zigzag ground cracks, rocky shore + sea foam around the island, tidier sideburns for black-haired Goku, no more streaks on Frieza's chest gem, comet-style ki blasts |
+| v9 | Goku gets short, chubby chibi legs, Frieza gets thumbs, index finger extends only when firing |
+| v10 | Aerial perspective (distant scenery fades), fixed the chase passing through the core of a rock pillar, anime-style Death Beam |
+| v11 | 4 parallel detail passes: 悟 kanji on the back + cloth folds + hair strands (Goku), armor sheen + abs + toes (Frieza), detailed Namekian dome houses + puffball trees + rock-and-grass clusters (scene) |
+| v12 | Color grade: navy vignette + fine film grain (app overlay only, render unchanged from v11) |
+| v13 | Heat haze (air shimmering around Goku while the aura burns) + soft bloom on the energy layer (app only) |
+| v14 | 3 parallel workstreams: fixed the camera dipping below ground + close-up of the scream + 3D rock debris; Goku's hair gets a hairline, shows the forehead, adds ears, drops the SSJ "snout"; Frieza gets a large purple dome, sturdy chibi body |
+| v15 | Frieza gets sharp eyes + purple marks + purple lips + fingered hands + short legs; Goku gets a real fist + spikier hair + fixed missing mouth in frames 0–292; app: impact sparks, flame-tongue aura, cel-shaded explosion smoke |
+| v16 | Goku based on the FighterZ reference: SSJ hair as wide flame-shaped locks + signature bangs, black hair in the same style, no more bald nape; deep V-neck + blue undershirt, wide sash, baggy tapered pants, navy boots with red stripes and yellow laces |
+| v17 | Slim Frieza body (chest, waist, slender thighs) + head with a chin; Goku gets a neck, chin, nose, collar no longer covers the mouth; fixed outline self-shadowing that kept the characters always dark → real light and shadow, a third tone, rim light, specular highlights |
+| v18 | Outline thickness varies with the camera + tapered hair tips; SSJ hair from behind becomes rows of flame locks with orange shading; new anime irises + many expressions (Goku angry / gritting teeth / smirking, Frieza smug / snarling / in pain) |
+| v19 | Goku's hair based on the FighterZ reference: SSJ as a flame mass of a few large upright locks, 2 S-shaped bang locks, rows of swept-up locks at the nape, pale yellow; black hair with Goku's jagged bangs; clean two-tone light/dark locks; black eyes + thick brows for base Goku, gritted teeth while charging Ki; sturdier Frieza (neck, chest, arms and legs) + domed shoulder pads; muscular Goku arms, removed the sleeve shoulder knobs, real sash knot |
+| v20 | SSJ hair at the nape becomes a few large flame locks (no more pinecone look from behind), hair no longer washed-out white during the transformation, clear sideburns; black hair asymmetric like the real Goku, removed the gray arc on the bangs, shorter nape; Goku's eyes fully black + fierce angry eyes while charging Ki; Death Beam energy ball with a white core and pink rim |
+| v21 | SSJ hair no longer bleached white by bloom; Frieza: clean bright face, large sharp eyes, purple lips, tapered head, neater forehead, V-shaped build; black-haired Goku with bristling triangular spikes |
+| v22 | Seamless arms and legs; film slowed from 20 s → 29 s (stretched shot by shot); anime-style score + sound effects fully rewritten, synced to every visual beat |
+| v23 | 5.5 s Kamehameha sequence before the ending (charging at the hip → "HA!" → blue beam engulfs Frieza), with its own music + sound effects; app effects sit on the correct layer thanks to a depth pass (Death Beam goes behind Frieza's head, aura no longer covers the shoulder pads); aura sprays along the flight direction; in-app text switched to English |
+| v24 | Black-haired Goku rebuilt in the DBZ silhouette: long top cluster swept to one side, long layered side locks pointing outward, thick bangs falling over the forehead (replacing the hedgehog spike bundle + cupped bang rim) |
+| v25 | Physics: Kamehameha skims the sea surface (ring waves + gravity-driven falling spray while charging, foam wake under the beam, water crown + big wave on impact, water sounds); Super Saiyan transformation debris flies on ballistic paths, kicks up dust on landing, bounces then settles; beam sticks to the hands + recoil pushes Goku back; beam glow reflected on the water; cracks cool down into dark fissures; Frieza with a slim neck and defined chin (no more bowling-pin shape) |
+| v26 | Inertia: hair + Frieza's tail lag then sway with acceleration, tail pulled straight by the wind during fast flight; grass flattened by the Ki wind while powering up; Frieza gets a nose; Kamehameha beam with flowing energy streaks, deeper blue energy ball, steam rising on impact; shader-drawn lightning only shows in the sky (behind rock pillars and characters); explosion rises + casts warm light on Goku; glowing objects cast colored light on the characters; falling rock sounds |
+| v27 | Goku's sash hangs with gravity + wind while flying; grass sways with storm gusts, wind sound rising and falling in sync; distant thunder rumbles matched to the lightning in the sky; Kamehameha foam breaks apart and dissolves, water droplets shrink; hot air shimmers around the energy ball / beam / explosion |
+| v28 | Trees sway in the storm wind + get whipped outward by the transformation shockwave then spring back; dust ring spreads from Goku's feet at the transformation burst; neutral black hair matching the reference image; Kamehameha explosion close-up no longer blown out (sea-colored water crown, glow leaves headroom); shockwave ring thins out gradually; Kamehameha beam with a wider white core |
+| v29 | Leaves fly in the storm wind, blown away by the transformation shockwave; Goku's hair pushed back by the wind against the flight direction; sky lightning casts a rim light on Goku; sea-colored Kamehameha droplets |
+| v30 | Death Beam misses Goku and hits the ground behind (flash, ballistic dirt debris, dust, scorch mark, explosion sound); black-haired Goku's skin no longer looks like a gray-white mask (slight cool color correction on the characters); neck in anime shadow tone; rocks shake as the Ki lifts them; grass and leaves rustle with each gust |
+| v31 | Goku's feet no longer sink into the ground while powering up (boot soles sank 8–11 cm below the grass for the whole transformation → body raised by exactly the sink depth) |

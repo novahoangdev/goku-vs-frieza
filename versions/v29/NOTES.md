@@ -1,8 +1,8 @@
-# v29: làm đẹp + vật lý tiếp (làm đêm)
+# v29: polish + more physics (overnight session)
 
-- App: tia sét trên trời rọi viền Goku — lúc sét loé, mép người phía tia sét (trên + ngang về phía tia) loé trắng tím một thoáng (so matte tại điểm với matte lệch 14 px về phía nguồn sáng).
-- Giọt nước kame (lúc gồng + nước rơi lại sau nổ) dùng vật liệu riêng `kame_drop_m`: lõi sáng, mép xanh ngọc (trước chung bọt trắng).
-- Lực cản không khí lên tóc: bay nhanh thì cả mái bị gió ép ngả ngược hướng bay (tới 8°, theo vận tốc trong hệ đầu, lọc mượt; cộng với lò xo quán tính v26, kẹp ±14°).
-- Lá cây bay trong gió giông (`secondary.py: storm_leaves`, 48 lá): bị cuốn theo hướng gió + cơn giật như cỏ/cây, vừa trôi vừa
-  chao lượn và lật vòng, rơi chậm; bay hết vùng thì ẩn rồi xuất hiện lại đầu gió. Lúc nổ biến hình, lá gần Goku bị sóng xung
-  kích hất văng ra ngoài (xung lực giảm theo khoảng cách) rồi chậm lại vì lực cản.
+- App: sky lightning casts a rim light on Goku: when lightning flashes, the edge of the body facing the bolt (top + sideways toward the bolt) flashes purple-white for an instant (comparing the matte at the pixel with the matte offset 14 px toward the light source).
+- Kamehameha droplets (while charging + water falling back after the explosion) use their own material `kame_drop_m`: bright core, turquoise edge (before, they shared the white foam material).
+- Air drag on the hair: when flying fast the whole head of hair is pushed back by the wind against the flight direction (up to 8°, based on velocity in the head's frame, smoothed; added to the v26 inertia spring, clamped to ±14°).
+- Leaves flying in the storm wind (`secondary.py: storm_leaves`, 48 leaves): carried along the wind direction + gusts like the grass/trees, drifting while
+  swooping and tumbling, falling slowly; once they leave the area they hide and reappear upwind. At the transformation burst, leaves near Goku are blown
+  away by the shockwave (impulse decreasing with distance) and then slow down due to drag.

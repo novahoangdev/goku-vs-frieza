@@ -1,21 +1,21 @@
-# v2: mặt anime + dáng người + cảnh Namek đầy đủ
+# v2: anime faces + body shapes + full Namek scene
 
 Model
-- Mặt vẽ bằng texture (blender/scripts/face_textures.py, SDF + numpy): mắt to có mi dày, đuôi mi, tròng gradient 3 tông, viền tròng, 3 điểm sáng; má hồng gạch chéo; miệng cười / miệng hét có lưỡi và răng.
-- Miếng dán mặt ôm sát hình elip của đầu (face_decal), đầu chibi má bầu, mắt hạ thấp và to hơn.
-- SSJ: mắt ngọc lam, mi trên hạ xuống nhìn quyết tâm; tóc vàng đậm hơn, không còn trắng bệch.
-- Toon shader thêm viền sáng (rim) và đốm bóng tính theo hướng camera, nên luôn thấy kiểu anime.
-- Frieza: vòm đầu tím bóng, mép cong cao ở trán và thấp ra gáy; mắt đỏ cụp mi nhìn khinh khỉnh, vạch tím dưới mắt; môi tím nhếch.
-- Dáng người: tay chân thon dần, quần võ phục ống rộng, cổ giày xanh; Frieza eo nhỏ, giáp vai dẹt.
+- Faces drawn as textures (blender/scripts/face_textures.py, SDF + numpy): big eyes with thick lashes, lash tails, 3-tone gradient irises, iris rims, 3 highlights; hatched blush on the cheeks; smiling / screaming mouths with tongue and teeth.
+- Face decal hugs the elliptical shape of the head (face_decal); chibi head with chubby cheeks, eyes lower and bigger.
+- SSJ: teal eyes, upper lids lowered for a determined look; hair a deeper yellow, no longer washed-out white.
+- Toon shader adds a rim light and specular highlights computed from the camera direction, so the anime look always shows.
+- Frieza: glossy purple head dome, its edge curving high at the forehead and low toward the nape; red eyes with drooping lids for a contemptuous look, purple marks under the eyes; smirking purple lips.
+- Body shapes: tapered arms and legs, wide-legged gi pants, blue boot cuffs; Frieza with a small waist and flat shoulder pads.
 
-Cảnh
-- Namek: nhà mái vòm, bụi cỏ, thảm cỏ loang, đá cuội, cột đá có vân ngang, mây cụm, vết nứt mảnh hơn.
+Scene
+- Namek: dome-roofed houses, grass bushes, patchy grass, pebbles, rock pillars with horizontal strata, cloud clusters, thinner cracks.
 
-Góc máy
-- Shot 7b: Frieza lao tới, máy đặt qua vai Goku (bản v1 không thấy ai).
-- Shot 8 truy đuổi: máy bay trước mặt Goku nhìn lùi lại, thấy Goku né và Frieza đuổi phía sau.
-- Shot 9c: máy qua vai Goku nhìn Frieza văng đi xa (bản v1 bị cắt ở mép khung).
+Camera angles
+- Shot 7b: Frieza charges in, camera placed over Goku's shoulder (in v1 nobody was visible).
+- Shot 8 chase: camera flies in front of Goku looking back, showing Goku dodging and Frieza chasing behind.
+- Shot 9c: camera over Goku's shoulder watching Frieza get knocked far away (in v1 he was cut off at the frame edge).
 
-Hiệu ứng trong app (Skia)
-- Aura có lưỡi lửa cuộn lên; tắt "quả trứng" khi Goku bị cột đá che (v1 có đốm lửa lơ lửng).
-- Death Beam kiểu anime: viền tím → hồng → lõi trắng, gợn rung, loé sáng ở đầu ngón tay.
+In-app effects (Skia)
+- Aura with curling flame tongues; the "egg" is turned off when Goku is hidden behind a rock pillar (v1 had a floating flame blob).
+- Anime-style Death Beam: purple → pink rim → white core, rippling, with a flash at the fingertip.

@@ -1,19 +1,19 @@
-# v6: va chạm kiểu anime
+# v6: anime-style impacts
 
-Hiệu ứng
-- Ngôi sao va chạm 2 lớp (cam ngoài, trắng trong) bật ra rồi tắt trong 7 frame ở mỗi đòn chạm: cú đấm của Frieza
-  vào thế đỡ (719), cú phản đòn của Goku (747), và to gấp rưỡi ở đòn kết liễu (1030). Luôn quay mặt về camera,
-  có lớp energy nên app thêm quầng sáng; không tính vào matte của Goku.
-- Vệt khí kéo sau lưng khi bay truy đuổi: vàng sau Goku, hồng tím sau Frieza, mờ dần về phía đuôi, chập chờn nhẹ;
-  lớp energy theo độ trong suốt nên app thêm quầng sáng đúng hình vệt.
+Effects
+- 2-layer impact stars (orange outside, white inside) pop out then vanish within 7 frames on every hit: Frieza's punch
+  into the guard (719), Goku's counter (747), and one and a half times larger on the finishing blow (1030). Always facing the camera,
+  on the energy layer so the app adds a glow; not included in Goku's matte.
+- Energy trails behind the characters while flying in the chase: yellow behind Goku, pink-purple behind Frieza, fading toward the tail, flickering slightly;
+  the energy layer follows the transparency, so the app adds a glow matching the trail shape.
 
-Cảnh
-- Bầu trời vẽ tay trôi chậm sang ngang trong suốt 20 giây (mây không còn đứng yên).
+Scene
+- The hand-painted sky drifts slowly sideways over the full 20 seconds (the clouds are no longer static).
 
 Model
-- Nét viền màu (colored lineart): viền mỗi phần là tông tối của chính nó (da nâu đỏ, võ phục nâu cam, tóc SSJ vàng
-  đồng, Frieza tím than...) thay vì một màu nâu đen chung, nhìn mềm và tinh hơn.
+- Colored lineart: each part's outline is a dark tone of its own color (reddish-brown skin, orange-brown gi, bronze SSJ
+  hair, dark purple Frieza...) instead of one shared dark brown, looking softer and more refined.
 
 App
-- Hạt khí vàng bay lên quanh Goku SSJ (2 lớp hạt vệt dọc với quầng cam, chỉ trong vùng aura, tắt khi Goku bị che
-  hoặc ra khỏi khung, mỏng đi ở cận cảnh).
+- Golden Ki particles rising around SSJ Goku (2 layers of vertical streak particles with an orange halo, only inside the aura area, off when Goku is hidden
+  or out of frame, thinner in close-ups).
